@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Calndo - AI-powered calendar for seamless task and event scheduling." name="description"/>
+<meta content="AI calendar, task scheduling, event planning, productivity" name="keywords"/>
+<meta content="Calndo" name="author"/>
+<title>Calndo - AI-Powered Scheduling</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #4FD1C5, #4299E1); }
+        .fab { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .header-transparent { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .tab-button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            background-color: #eee;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        .tab-button.active {
+            background-color: #fff;
+            border-bottom: 2px solid #4FD1C5;
+            color: #4FD1C5;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Style for hidden search input */
+        .hidden-search-input {
+            width: 0;
+            opacity: 0;
+            transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            padding: 0;
+        }
+        .visible-search-input {
+            width: 100%;
+            opacity: 1;
+            padding: 12px; /* Restore padding when visible */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<header class="header-transparent absolute top-0 left-0 w-full z-10 p-6">
+    <nav class="container mx-auto flex justify-between items-center">
+        <a href="#" class="text-2xl font-bold text-teal-600">Calndo</a>
+        <div class="space-x-4">
+            <a href="#features" class="text-gray-700 hover:text-teal-600 transition duration-300">Features</a>
+            <a href="#about" class="text-gray-700 hover:text-teal-600 transition duration-300">About</a>
+            <a href="#contact" class="text-gray-700 hover:text-teal-600 transition duration-300">Contact</a>
+            <button id="authModalBtn" class="bg-teal-600 text-white px-5 py-2 rounded-full hover:bg-teal-700 transition duration-300">Sign Up / Login</button>
+            <button id="logoutBtn" class="bg-red-500 text-white px-5 py-2 rounded-full hover:bg-red-600 transition duration-300 hidden">Logout</button>
+        </div>
+    </nav>
+</header>
+
+<section id="hero" class="gradient-bg text-white py-24 md:py-32 flex items-center min-h-screen relative overflow-hidden">
+    <div class="container mx-auto text-center z-10" data-aos="fade-up" data-aos-duration="1000">
+        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-6">Your Day, Perfected by AI.</h1>
+        <p class="text-xl md:text-2xl mb-10 max-w-2xl mx-auto">Calndo intelligently schedules your tasks and events for ultimate productivity.</p>
+        <button id="getStartedBtn" class="bg-white text-teal-600 px-8 py-3 rounded-full text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">Get Started</button>
+    </div>
+    <div class="absolute inset-0 z-0 opacity-20">
+        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <radialGradient id="grad1" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#4FD1C5" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#4299E1" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <circle cx="20" cy="80" r="30" fill="url(#grad1)"/>
+            <circle cx="80" cy="20" r="40" fill="url(#grad1)"/>
+            <circle cx="50" cy="50" r="25" fill="url(#grad1)"/>
+        </svg>
+    </div>
+</section>
+
+<section id="features" class="py-16 md:py-24 bg-white">
+    <div class="container mx-auto text-center" data-aos="fade-up" data-aos-duration="1000">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-12">Unleash Your Productivity</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
+            <div class="p-6 rounded-lg shadow-md bg-white hover:shadow-xl transition duration-300">
+                <div class="text-teal-500 mb-4 text-4xl">🗓️</div>
+                <h3 class="text-xl font-semibold mb-2">Smart Scheduling</h3>
+                <p class="text-gray-600">AI optimizes your calendar, finding the best slots for your tasks.</p>
+            </div>
+            <div class="p-6 rounded-lg shadow-md bg-white hover:shadow-xl transition duration-300">
+                <div class="text-teal-500 mb-4 text-4xl">✍️</div>
+                <h3 class="text-xl font-semibold mb-2">Effortless Task Management</h3>
+                <p class="text-gray-600">Add, track, and complete tasks with an intuitive interface.</p>
+            </div>
+            <div class="p-6 rounded-lg shadow-md bg-white hover:shadow-xl transition duration-300">
+                <div class="text-teal-500 mb-4 text-4xl">🗣️</div>
+                <h3 class="text-xl font-semibold mb-2">Voice Assistant</h3>
+                <p class="text-gray-600">Manage your schedule hands-free with simple voice commands.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="tasks" class="py-16 md:py-24 bg-gray-100 hidden" data-aos="fade-up" data-aos-duration="1000">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-12">Your Personalized Calendar</h2>
+
+        <div class="flex justify-between items-center mb-6">
+            <button id="prevMonth" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Previous</button>
+            <h3 id="currentMonthYear" class="text-2xl font-semibold"></h3>
+            <button id="nextMonth" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Next</button>
+        </div>
+
+        <div id="calendar" class="grid grid-cols-7 gap-1 bg-white rounded-lg shadow-md p-4">
+            </div>
+
+        <div class="mt-12 p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-2xl font-semibold mb-6">Tasks for <span id="selectedDateDisplay"></span></h3>
+            <p id="taskStatus" class="text-center text-gray-600 my-4 hidden"></p>
+
+            <div class="mb-6 flex items-center space-x-2">
+                <button id="toggleSearchBtn" class="p-2 text-gray-600 hover:text-teal-600 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+                <input type="text" id="taskSearchInput" placeholder="Search tasks..." class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 hidden-search-input"/>
+            </div>
+
+            <form id="taskForm" class="mb-8 flex flex-col md:flex-row gap-4">
+                <input type="text" id="taskInput" placeholder="New task description" class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                <input type="datetime-local" id="taskDateTime" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                <button type="submit" class="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition duration-300">Add Task</button>
+            </form>
+
+            <div class="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-lg font-semibold text-blue-800 mb-2">AI Task Scheduling Assistant</h4>
+                <p class="text-blue-700 mb-4">Let AI suggest an optimal time for your task.</p>
+                <input type="text" id="aiTaskInput" placeholder="Task for AI suggestion (e.g., 'Meeting with John')" class="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"/>
+                <button id="suggestTimeBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-300">Suggest Time</button>
+                <p id="aiSuggestionOutput" class="mt-4 text-blue-900 font-medium hidden"></p>
+            </div>
+
+            <div id="taskList" class="space-y-4">
+                <p class="text-gray-500 text-center" id="noTasksMessage">No tasks for this day. Add a new one!</p>
+            </div>
+        </div>
+        <button id="voiceAssistantBtn" class="fab bg-purple-600 text-white p-4 rounded-full shadow-lg hover:bg-purple-700 transition duration-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m7 0V5a2 2 0 012-2h2a2 2 0 012 2v6m-6 0H6.5M10 21v-5a2 2 0 00-2-2H6a2 2 0 00-2 2v5m8 0h3.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+        </button>
+        <p id="voiceAssistantStatus" class="fixed bottom-20 right-20 text-sm text-gray-700 bg-white p-2 rounded-lg shadow hidden z-1001"></p>
+
+    </div>
+</section>
+
+
+<section id="about" class="py-16 md:py-24 bg-white">
+    <div class="container mx-auto px-4 text-center" data-aos="fade-up" data-aos-duration="1000">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-8">About Calndo</h2>
+        <p class="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Calndo is your intelligent partner in time management. Leveraging cutting-edge AI, we
+            transform the way you organize your day. From suggesting optimal task timings to
+            providing a hands-free voice assistant, Calndo is built to boost your productivity
+            and help you achieve your goals effortlessly. We believe in making scheduling
+            smart, simple, and seamless.
+        </p>
+    </div>
+</section>
+
+<section id="contact" class="py-16 md:py-24 gradient-bg text-white">
+    <div class="container mx-auto px-4 text-center" data-aos="fade-up" data-aos-duration="1000">
+        <h2 class="text-3xl md:text-4xl font-bold mb-8">Get In Touch</h2>
+        <p class="text-lg mb-8 max-w-xl mx-auto">Have questions or feedback? We'd love to hear from you!</p>
+        <form class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-xl" id="contactForm">
+            <input type="text" id="contactName" placeholder="Your Name" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-800"/>
+            <input type="email" id="contactEmail" placeholder="Your Email" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-800"/>
+            <textarea id="contactMessage" rows="5" placeholder="Your Message" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-800"></textarea>
+            <button type="submit" class="bg-teal-600 text-white px-8 py-3 rounded-full hover:bg-teal-700 transition duration-300 font-semibold">Send Message</button>
+        </form>
+        <p id="contactStatus" class="mt-4 text-white font-medium hidden"></p>
+    </div>
+</section>
+
+<footer class="bg-gray-800 text-white py-8 text-center">
+    <div class="container mx-auto px-4">
+        <p>&copy; 2024 Calndo. All rights reserved.</p>
+        <div class="mt-4 space-x-4">
+            <a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a>
+            <a href="#" class="text-gray-400 hover:text-white">Terms of Service</a>
+        </div>
+    </div>
+</footer>
+
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button" onclick="closeAuthModal()">&times;</span>
+        <div class="flex justify-center mb-4">
+            <button id="loginTab" class="tab-button active">Login</button>
+            <button id="signupTab" class="tab-button">Sign Up</button>
+        </div>
+
+        <div id="loginContent" class="tab-content active">
+            <form id="loginForm" class="space-y-4">
+                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                <button type="submit" class="w-full bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition duration-300">Login</button>
+                <p id="loginStatus" class="text-center text-red-500 mt-2 hidden"></p>
+            </form>
+        </div>
+
+        <div id="signupContent" class="tab-content">
+            <form id="signupForm" class="space-y-4">
+                <input type="email" id="signupEmail" placeholder="Email" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                <input type="password" id="signupPassword" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+                <button type="submit" class="w-full bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition duration-300">Sign Up</button>
+                <p id="signupStatus" class="text-center text-red-500 mt-2 hidden"></p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button" onclick="closeEditTaskModal()">&times;</span>
+        <h3 class="text-xl font-semibold mb-4">Edit Task</h3>
+        <form id="editTaskForm" class="space-y-4">
+            <input type="hidden" id="editTaskId"/>
+            <label for="editTaskDescription" class="block text-gray-700">Description:</label>
+            <input type="text" id="editTaskDescription" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+            <label for="editTaskDateTime" class="block text-gray-700">Date & Time:</label>
+            <input type="datetime-local" id="editTaskDateTime" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+            <div class="flex items-center space-x-2">
+                <input type="checkbox" id="editTaskCompleted" class="form-checkbox h-5 w-5 text-teal-600"/>
+                <label for="editTaskCompleted" class="text-gray-700">Completed</label>
+            </div>
+            <button type="submit" class="w-full bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition duration-300">Save Changes</button>
+            <p id="editTaskStatus" class="text-center text-red-500 mt-2 hidden"></p>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    AOS.init(); // Initialize AOS library
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- API Base URL ---
+        const API_BASE_URL = 'http://localhost:3000/api'; // Use localhost for local development, change for deployment
+
+        // --- DOM Elements ---
+        const authModal = document.getElementById('authModal');
+        const authModalBtn = document.getElementById('authModalBtn');
+        const closeButton = authModal.querySelector('.close-button');
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
+        const loginContent = document.getElementById('loginContent');
+        const signupContent = document.getElementById('signupContent');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const loginStatus = document.getElementById('loginStatus');
+        const signupStatus = document.getElementById('signupStatus');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const tasksSection = document.getElementById('tasks');
+        const taskForm = document.getElementById('taskForm');
+        const taskInput = document.getElementById('taskInput');
+        const taskDateTime = document.getElementById('taskDateTime');
+        const taskList = document.getElementById('taskList');
+        const noTasksMessage = document.getElementById('noTasksMessage');
+        const aiTaskInput = document.getElementById('aiTaskInput');
+        const suggestTimeBtn = document.getElementById('suggestTimeBtn');
+        const aiSuggestionOutput = document.getElementById('aiSuggestionOutput');
+        const taskStatus = document.getElementById('taskStatus');
+        const voiceAssistantBtn = document.getElementById('voiceAssistantBtn');
+        const voiceAssistantStatus = document.getElementById('voiceAssistantStatus');
+        const contactForm = document.getElementById('contactForm');
+        const contactStatus = document.getElementById('contactStatus');
+        const getStartedBtn = document.getElementById('getStartedBtn');
+
+        // New Elements for Search and Edit
+        const toggleSearchBtn = document.getElementById('toggleSearchBtn'); // New search icon button
+        const taskSearchInput = document.getElementById('taskSearchInput');
+        const editTaskModal = document.getElementById('editTaskModal');
+        const editTaskForm = document.getElementById('editTaskForm');
+        const editTaskId = document.getElementById('editTaskId');
+        const editTaskDescription = document.getElementById('editTaskDescription');
+        const editTaskDateTime = document.getElementById('editTaskDateTime');
+        const editTaskCompleted = document.getElementById('editTaskCompleted');
+        const editTaskStatus = document.getElementById('editTaskStatus');
+
+
+        // --- Calendar Logic ---
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let currentSelectedDate = new Date(); // Tracks the currently selected day for tasks
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        const renderCalendar = () => {
+            const calendarEl = document.getElementById('calendar');
+            const currentMonthYearEl = document.getElementById('currentMonthYear');
+            calendarEl.innerHTML = ''; // Clear previous days
+
+            // Add day names row
+            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            dayNames.forEach(day => {
+                const dayNameEl = document.createElement('div');
+                dayNameEl.className = 'text-center font-semibold py-2 text-gray-600';
+                dayNameEl.textContent = day; // Add text content
+                calendarEl.appendChild(dayNameEl);
+            });
+
+            currentMonthYearEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Add blank spaces for days before the 1st
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const blankDay = document.createElement('div');
+                blankDay.className = 'p-2 text-center text-gray-400';
+                calendarEl.appendChild(blankDay);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'p-2 text-center rounded-lg cursor-pointer hover:bg-teal-100 transition duration-200 relative';
+                dayEl.textContent = day;
+                dayEl.dataset.date = new Date(currentYear, currentMonth, day).toISOString().split('T')[0];
+
+                if (dayEl.dataset.date === currentSelectedDate.toISOString().split('T')[0]) {
+                    dayEl.classList.add('bg-teal-500', 'text-white', 'font-bold');
+                } else if (new Date(currentYear, currentMonth, day).toDateString() === new Date().toDateString()) {
+                    dayEl.classList.add('bg-gray-200', 'font-medium'); // Highlight today
+                }
+
+                dayEl.addEventListener('click', () => {
+                    currentSelectedDate = new Date(currentYear, currentMonth, day);
+                    renderCalendar(); // Re-render to update selected day highlight
+                    updateSelectedDateDisplay();
+                    fetchTasks(); // Fetch tasks for the newly selected date
+                });
+                calendarEl.appendChild(dayEl);
+            }
+            updateSelectedDateDisplay();
+            fetchTasks(); // Initial fetch (will be called again by updateAuthUI if logged in)
+        };
+
+        const updateSelectedDateDisplay = () => {
+            document.getElementById('selectedDateDisplay').textContent = currentSelectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            // Set taskDateTime to currentSelectedDate at 9 AM for convenience
+            const today = new Date();
+            const defaultTime = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 9, 0); // Set to 9 AM
+            taskDateTime.value = defaultTime.toISOString().slice(0, 16);
+        };
+
+
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        // --- Task Management Logic ---
+
+        const fetchTasks = async () => {
+            const date = currentSelectedDate.toISOString().split('T')[0];
+            const searchQuery = taskSearchInput.value.trim(); // Get current search input
+            let url = `${API_BASE_URL}/tasks?date=${date}`;
+
+            if (searchQuery) {
+                url += `&search=${encodeURIComponent(searchQuery)}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        setStatus('You need to log in to view tasks.', true);
+                        noTasksMessage.classList.remove('hidden');
+                        taskList.innerHTML = ''; // Clear tasks if unauthorized
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const tasks = await response.json();
+                renderTasks(tasks);
+            } catch (error) {
+                console.error('Error fetching tasks:', error);
+                setStatus('Failed to load tasks. Please try again.', true);
+                noTasksMessage.classList.remove('hidden');
+                taskList.innerHTML = '';
+            }
+        };
+
+        const renderTasks = (tasks) => {
+            taskList.innerHTML = '';
+            if (tasks.length === 0) {
+                noTasksMessage.classList.remove('hidden');
+            } else {
+                noTasksMessage.classList.add('hidden');
+                tasks.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime)); // Sort by time
+                tasks.forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'flex flex-col md:flex-row items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200';
+                    taskItem.dataset.id = task._id;
+
+                    const taskTextContent = document.createElement('span');
+                    taskTextContent.className = 'flex-grow text-gray-800 mb-2 md:mb-0';
+
+                    const taskDescriptionEl = document.createElement('span');
+                    taskDescriptionEl.textContent = task.description;
+                    taskDescriptionEl.className = task.completed ? 'line-through text-gray-500' : 'text-gray-800 font-medium';
+
+                    const taskTimeEl = document.createElement('span');
+                    const taskDateTimeFormatted = new Date(task.dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    taskTimeEl.textContent = ` (${taskDateTimeFormatted})`;
+                    taskTimeEl.className = 'text-sm text-gray-500 ml-2';
+
+                    taskTextContent.appendChild(taskDescriptionEl);
+                    taskTextContent.appendChild(taskTimeEl);
+
+                    const actionsDiv = document.createElement('div');
+                    // UPDATED CLASSES FOR ACTIONS DIV FOR BETTER VISIBILITY AND RESPONSIVENESS
+                    actionsDiv.className = 'flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-4';
+
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = 'Edit';
+                    editBtn.className = 'px-4 py-2 bg-blue-500 text-white rounded-full text-base hover:bg-blue-600 transition duration-300 shadow-md';
+                    editBtn.addEventListener('click', () => openEditTaskModal(task));
+
+                    const completeBtn = document.createElement('button');
+                    completeBtn.textContent = task.completed ? 'Undo' : 'Complete';
+                    completeBtn.className = `px-4 py-2 rounded-full text-white text-base ${task.completed ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} transition duration-300 shadow-md`;
+                    completeBtn.addEventListener('click', () => toggleTaskCompleted(task._id, !task.completed));
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.className = 'px-4 py-2 bg-red-500 text-white rounded-full text-base hover:bg-red-600 transition duration-300 shadow-md';
+                    deleteBtn.addEventListener('click', () => deleteTask(task._id));
+
+                    actionsDiv.appendChild(editBtn);
+                    actionsDiv.appendChild(completeBtn);
+                    actionsDiv.appendChild(deleteBtn);
+
+                    taskItem.appendChild(taskTextContent);
+                    taskItem.appendChild(actionsDiv);
+                    taskList.appendChild(taskItem);
+                });
+            }
+        };
+
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const description = taskInput.value.trim();
+            const dateTime = taskDateTime.value;
+
+            if (!description || !dateTime) {
+                setStatus('Please enter both task description and date/time.', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ description, dateTime })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                taskInput.value = ''; // Clear input
+                setStatus('Task added successfully!');
+                fetchTasks(); // Re-fetch tasks for current date
+            } catch (error) {
+                console.error('Error adding task:', error);
+                setStatus('Failed to add task. Please try again.', true);
+            }
+        });
+
+        const toggleTaskCompleted = async (id, completed) => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ completed })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                setStatus(`Task marked as ${completed ? 'completed' : 'incomplete'}!`);
+                fetchTasks(); // Re-fetch tasks
+            } catch (error) {
+                console.error('Error toggling task status:', error);
+                setStatus('Failed to update task status.', true);
+            }
+        };
+
+        const deleteTask = async (id) => {
+            if (!confirm('Are you sure you want to delete this task?')) {
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                setStatus('Task deleted successfully!');
+                fetchTasks(); // Re-fetch tasks
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                setStatus('Failed to delete task.', true);
+            }
+        };
+
+        // --- AI Task Suggestion Logic ---
+        suggestTimeBtn.addEventListener('click', async () => {
+            const taskDescription = aiTaskInput.value.trim();
+            if (!taskDescription) {
+                aiSuggestionOutput.textContent = 'Please enter a task description for AI suggestion.';
+                aiSuggestionOutput.classList.remove('hidden');
+                aiSuggestionOutput.style.color = 'red';
+                return;
+            }
+
+            aiSuggestionOutput.textContent = 'Thinking...';
+            aiSuggestionOutput.style.color = ''; // Reset color
+            aiSuggestionOutput.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/suggest-time`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ description: taskDescription })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.suggestedTime) {
+                    const suggestedDate = new Date(data.suggestedTime);
+                    aiSuggestionOutput.textContent = `AI suggests: ${taskDescription} at ${suggestedDate.toLocaleString()}.`;
+                    aiSuggestionOutput.style.color = 'green';
+                } else {
+                    aiSuggestionOutput.textContent = data.message || 'AI could not suggest a time for now.';
+                    aiSuggestionOutput.style.color = 'orange';
+                }
+            } catch (error) {
+                console.error('Error with AI suggestion:', error);
+                aiSuggestionOutput.textContent = 'Failed to get AI suggestion. Please try again.';
+                aiSuggestionOutput.style.color = 'red';
+            }
+        });
+
+        // --- Search Bar Logic ---
+        // Toggle search input visibility
+        toggleSearchBtn.addEventListener('click', () => {
+            taskSearchInput.classList.toggle('hidden-search-input');
+            taskSearchInput.classList.toggle('visible-search-input');
+            if (taskSearchInput.classList.contains('visible-search-input')) {
+                taskSearchInput.focus(); // Focus on input when it becomes visible
+            } else {
+                taskSearchInput.value = ''; // Clear search when hidden
+                fetchTasks(); // Re-fetch tasks without search term
+            }
+        });
+
+        // Debounce for search input to prevent too many requests
+        let searchTimeout;
+        taskSearchInput.addEventListener('keyup', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                fetchTasks(); // Re-fetch tasks with the search query
+            }, 300); // Wait 300ms after user stops typing
+        });
+
+
+        // --- Utility function for status messages ---
+        const setStatus = (message, isError = false) => {
+            taskStatus.textContent = message;
+            taskStatus.classList.remove('hidden', 'text-red-500', 'text-green-500');
+            taskStatus.classList.add(isError ? 'text-red-500' : 'text-green-500');
+            setTimeout(() => {
+                taskStatus.classList.add('hidden');
+            }, 3000);
+        };
+
+
+        // --- Authentication Modal Logic ---
+        function openAuthModal() {
+            authModal.style.display = 'flex';
+            loginTab.click(); // Default to login tab
+        }
+
+        function closeAuthModal() {
+            authModal.style.display = 'none';
+            loginStatus.classList.add('hidden');
+            signupStatus.classList.add('hidden');
+            loginForm.reset();
+            signupForm.reset();
+        }
+
+        authModalBtn.addEventListener('click', openAuthModal);
+        closeButton.addEventListener('click', closeAuthModal);
+        window.addEventListener('click', (event) => {
+            if (event.target == authModal) {
+                closeAuthModal();
+            }
+        });
+
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            loginContent.classList.add('active');
+            signupContent.classList.remove('active');
+            loginStatus.classList.add('hidden');
+            signupStatus.classList.add('hidden');
+        });
+
+        signupTab.addEventListener('click', () => {
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            signupContent.classList.add('active');
+            loginContent.classList.remove('active');
+            loginStatus.classList.add('hidden');
+            signupStatus.classList.add('hidden');
+        });
+
+        // Function to update UI based on login status
+        function updateAuthUI(isLoggedIn) {
+            if (isLoggedIn) {
+                authModalBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                tasksSection.classList.remove('hidden');
+                fetchTasks(); // Fetch tasks when logged in
+            } else {
+                authModalBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                tasksSection.classList.add('hidden');
+                taskList.innerHTML = ''; // Clear tasks if logged out
+                noTasksMessage.classList.remove('hidden'); // Show no tasks message
+            }
+        }
+
+        // Login Form Submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginForm.loginEmail.value;
+            const password = loginForm.loginPassword.value;
+
+            loginStatus.classList.add('hidden'); // Hide previous status
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('isLoggedIn', 'true'); // Store login status
+                    // In a real app, you'd store a JWT token here: localStorage.setItem('token', data.token);
+                    updateAuthUI(true);
+                    closeAuthModal();
+                    alert('Logged in successfully!'); // Or show a nicer notification
+                } else {
+                    loginStatus.textContent = data.message || 'Login failed. Please check your credentials.';
+                    loginStatus.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                loginStatus.textContent = 'An error occurred during login. Please try again.';
+                loginStatus.classList.remove('hidden');
+            }
+        });
+
+        // Signup Form Submission
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = signupForm.signupEmail.value;
+            const password = signupForm.signupPassword.value;
+
+            signupStatus.classList.add('hidden'); // Hide previous status
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Send welcome email using EmailJS
+                    // Replace with your actual EmailJS Public Key, Service ID, and Template ID
+                    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+                    const templateParams = {
+                        to_email: email,
+                        subject: "Welcome to Calndo!",
+                        message: "Thank Ayou for registering with Calndo! We're excited to help you manage your tasks with AI."
+                    };
+                    await emailjs.send("YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID", templateParams);
+
+                    alert('Registration successful! Welcome email sent.'); // Or show a nicer notification
+                    loginTab.click(); // Switch to login tab
+                    loginForm.loginEmail.value = email; // Pre-fill login email
+                } else {
+                    signupStatus.textContent = data.message || 'Registration failed. Please try again.';
+                    signupStatus.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                signupStatus.textContent = 'An error occurred during registration. Please try again.';
+                signupStatus.classList.remove('hidden');
+            }
+        });
+
+        // Logout functionality
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn'); // Remove login status
+            // In a real app, you'd also remove the JWT token: localStorage.removeItem('token');
+            updateAuthUI(false);
+            alert('Logged out successfully!');
+            // Optional: Redirect to home or hero section
+            window.location.href = '#hero';
+        });
+
+        // --- Contact Form Logic (EmailJS) ---
+        // Ensure EmailJS is initialized
+        emailjs.init("H6HQspTQi-01K9Ava"); // Replace with your actual EmailJS Public Key
+
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('contactName').value;
+            const email = document.getElementById('contactEmail').value;
+            const message = document.getElementById('contactMessage').value;
+
+            if (!name || !email || !message) {
+                contactStatus.textContent = 'Please fill in all fields.';
+                contactStatus.classList.remove('hidden', 'text-green-500');
+                contactStatus.classList.add('text-red-500');
+                return;
+            }
+
+            contactStatus.textContent = 'Sending message...';
+            contactStatus.classList.remove('hidden', 'text-red-500');
+            contactStatus.classList.add('text-white'); // Assuming status is white on gradient-bg
+
+            const templateParams = {
+                from_name: name,
+                from_email: email,
+                message: message
+            };
+
+            try {
+                // Replace with your EmailJS Service ID and Template ID
+                await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams);
+                contactStatus.textContent = 'Message sent successfully!';
+                contactStatus.classList.remove('text-red-500');
+                contactStatus.classList.add('text-green-500');
+                contactForm.reset();
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                contactStatus.textContent = 'Failed to send message. Please try again.';
+                contactStatus.classList.remove('text-green-500');
+                contactStatus.classList.add('text-red-500');
+            } finally {
+                setTimeout(() => {
+                    contactStatus.classList.add('hidden');
+                }, 5000);
+            }
+        });
+
+        // --- Edit Task Modal Functions ---
+        function openEditTaskModal(task) {
+            editTaskId.value = task._id;
+            editTaskDescription.value = task.description;
+            // Format date for datetime-local input
+            const taskDate = new Date(task.dateTime);
+            editTaskDateTime.value = taskDate.toISOString().slice(0, 16);
+            editTaskCompleted.checked = task.completed;
+            editTaskStatus.classList.add('hidden'); // Clear previous status
+            editTaskModal.style.display = 'flex';
+        }
+
+        function closeEditTaskModal() {
+            editTaskModal.style.display = 'none';
+        }
+
+        // Close modal if clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target == editTaskModal) {
+                closeEditTaskModal();
+            }
+        });
+
+        editTaskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = editTaskId.value;
+            const description = editTaskDescription.value.trim();
+            const dateTime = editTaskDateTime.value;
+            const completed = editTaskCompleted.checked;
+
+            if (!description || !dateTime) {
+                editTaskStatus.textContent = 'Description and Date/Time are required.';
+                editTaskStatus.classList.remove('hidden');
+                editTaskStatus.classList.add('text-red-500');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ description, dateTime, completed })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                setStatus('Task updated successfully!');
+                closeEditTaskModal();
+                fetchTasks(); // Re-fetch tasks to update the list
+            } catch (error) {
+                console.error('Error updating task:', error);
+                editTaskStatus.textContent = 'Failed to update task. Please try again.';
+                editTaskStatus.classList.remove('hidden');
+                editTaskStatus.classList.add('text-red-500');
+            }
+        });
+
+
+        // --- AI Voice Assistant Logic ---
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false; // Listen for a single phrase
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            let isListening = false;
+            const setAssistantStatus = (message, isError = false) => {
+                voiceAssistantStatus.textContent = message;
+                voiceAssistantStatus.classList.remove('hidden', 'text-red-500', 'text-green-500');
+                voiceAssistantStatus.classList.add(isError ? 'text-red-500' : 'text-gray-700');
+                voiceAssistantStatus.classList.remove('hidden');
+                clearTimeout(voiceAssistantStatus.timeoutId); // Clear any previous timeout
+                voiceAssistantStatus.timeoutId = setTimeout(() => {
+                    voiceAssistantStatus.classList.add('hidden');
+                }, 5000); // Hide after 5 seconds
+            };
+
+            voiceAssistantBtn.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    isListening = false;
+                    setAssistantStatus('Voice assistant stopped.');
+                } else {
+                    recognition.start();
+                    isListening = true;
+                    setAssistantStatus('Listening for commands...');
+                }
+                voiceAssistantBtn.classList.toggle('bg-red-600', isListening);
+                voiceAssistantBtn.classList.toggle('bg-purple-600', !isListening);
+            });
+
+            recognition.onstart = () => {
+                setAssistantStatus('Voice assistant active. Speak now...');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                voiceAssistantBtn.classList.remove('bg-red-600');
+                voiceAssistantBtn.classList.add('bg-purple-600');
+                setAssistantStatus('Voice assistant idle.');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setAssistantStatus(`Error: ${event.error}. Please try again.`, true);
+                isListening = false;
+                voiceAssistantBtn.classList.remove('bg-red-600');
+                voiceAssistantBtn.classList.add('bg-purple-600');
+            };
+
+            const speak = (text) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+            };
+
+            recognition.onresult = async (event) => {
+                const commandText = event.results[0][0].transcript.toLowerCase();
+                console.log('Voice Command:', commandText);
+                let responseText = "Sorry, I didn't understand that. Can you please rephrase?";
+                let actionPerformed = false;
+
+                // Define actions based on voice commands
+                // Add Task Command
+                if (commandText.includes('add task') && commandText.includes('called')) {
+                    const taskMatch = commandText.match(/add task called (.+?) (for|on|at) (.+)/);
+                    if (taskMatch) {
+                        const description = taskMatch[1].trim();
+                        const dateTimeString = taskMatch[3].trim();
+                        const parsedDate = new Date(dateTimeString);
+                        if (!isNaN(parsedDate.getTime())) {
+                            taskInput.value = description;
+                            taskDateTime.value = parsedDate.toISOString().slice(0, 16);
+                            taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                            responseText = `Attempting to add task: ${description} for ${parsedDate.toLocaleString()}.`;
+                            actionPerformed = true;
+                        } else {
+                            responseText = `Could not parse date and time from "${dateTimeString}". Please be more specific.`;
+                        }
+                    } else {
+                        responseText = "Please specify the task description and when, for example: 'add task called buy groceries for tomorrow at 5 PM'.";
+                    }
+                }
+                // Suggest Time Command
+                else if (commandText.includes('suggest time for')) {
+                    const taskMatch = commandText.match(/suggest time for (.+)/);
+                    if (taskMatch) {
+                        const description = taskMatch[1].trim();
+                        aiTaskInput.value = description;
+                        suggestTimeBtn.click(); // Simulate button click
+                        responseText = `Getting AI suggestion for "${description}".`;
+                        actionPerformed = true;
+                    } else {
+                        responseText = "Please tell me what task you want a suggestion for, like 'suggest time for my meeting'.";
+                    }
+                }
+                // Show tasks command
+                else if (commandText.includes('show tasks for')) {
+                    const dateMatch = commandText.match(/show tasks for (.+)/);
+                    if (dateMatch) {
+                        const dateString = dateMatch[1].trim();
+                        let targetDate = new Date();
+                        // Adjusting for common phrases relative to current date
+                        const now = new Date();
+                        if (dateString.includes('today')) {
+                            // targetDate is already today's date
+                        } else if (dateString.includes('tomorrow')) {
+                            targetDate.setDate(now.getDate() + 1);
+                        } else if (dateString.includes('yesterday')) {
+                            targetDate.setDate(now.getDate() - 1);
+                        } else if (dateString.includes('next week')) {
+                            targetDate.setDate(now.getDate() + 7);
+                        } else if (dateString.includes('next month')) {
+                            targetDate.setMonth(now.getMonth() + 1);
+                        }
+                        else {
+                            // Try to parse an absolute date
+                            const parsed = new Date(dateString);
+                            if (!isNaN(parsed.getTime())) {
+                                targetDate = parsed;
+                            } else {
+                                responseText = `Could not understand the date "${dateString}". Showing tasks for today.`;
+                            }
+                        }
+                        currentSelectedDate = targetDate;
+                        currentMonth = targetDate.getMonth();
+                        currentYear = targetDate.getFullYear();
+                        renderCalendar(); // This will re-render calendar and re-fetch tasks for the date
+                        responseText = `Showing tasks for ${currentSelectedDate.toLocaleDateString()}.`;
+                        actionPerformed = true;
+                    }
+                }
+                // What's the date?
+                else if (commandText.includes("what's the date") || commandText.includes("what is the date")) {
+                    responseText = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
+                    actionPerformed = true;
+                }
+                 // Farewell
+                else if (commandText.includes('goodbye') || commandText.includes('bye')) {
+                    responseText = "Goodbye! Have a great day.";
+                    actionPerformed = true;
+                }
+
+                speak(responseText);
+                setAssistantStatus(responseText); // Display the spoken response
+            };
+
+            window.speak = speak;
+        } else {
+            // Browser does not support Web Speech API
+            voiceAssistantBtn.style.display = 'none';
+            setStatus('Voice assistant not supported in this browser. Please use Chrome or Edge.', true);
+        }
+        // --- End AI Voice Assistant Logic ---
+
+
+        // Initial Render calls
+        renderCalendar();
+        // fetchTasks(); // Initial fetch of tasks is now handled by updateAuthUI
+
+        // Check login status on page load
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        updateAuthUI(isLoggedIn); // Update UI based on initial login status
+
+        // Event listener for "Get Started" button to open auth modal or go to tasks
+        if (getStartedBtn) {
+            getStartedBtn.addEventListener('click', () => {
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                if (isLoggedIn) {
+                    window.location.href = '#tasks'; // If already logged in, redirect to tasks section
+                } else {
+                    openAuthModal(); // If not logged in, open the auth modal
+                }
+            });
+        }
+
+    }); // End DOMContentLoaded
+</script>
+</body>
+</html>
