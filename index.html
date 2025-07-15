@@ -98,7 +98,8 @@
         <a href="#" class="text-2xl font-bold text-teal-600">Calndo</a>
         <div class="space-x-4">
             <a href="#features" class="text-gray-700 hover:text-teal-600 transition duration-300">Features</a>
-            <a href="#about" class="text-gray-700 hover:text-teal-600 transition duration-300">Contact</a>
+            <a href="#about" class="text-gray-700 hover:text-teal-600 transition duration-300">About</a>
+            <a href="#contact" class="text-gray-700 hover:text-teal-600 transition duration-300">Contact</a>
             <button id="authModalBtn" class="bg-teal-600 text-white px-5 py-2 rounded-full hover:bg-teal-700 transition duration-300">Sign Up / Login</button>
             <button id="logoutBtn" class="bg-red-500 text-white px-5 py-2 rounded-full hover:bg-red-600 transition duration-300 hidden">Logout</button>
         </div>
@@ -310,7 +311,7 @@
         const loginStatus = document.getElementById('loginStatus');
         const signupStatus = document.getElementById('signupStatus');
         const logoutBtn = document.getElementById('logoutBtn');
-        const tasksSection = document.getElementById('tasks'); // Corrected ID from 'tasks-section'
+        const tasksSection = document.getElementById('tasks');
         const taskForm = document.getElementById('taskForm');
         const taskInput = document.getElementById('taskInput');
         const taskDateTimeInput = document.getElementById('taskDateTime');
@@ -491,8 +492,7 @@
 
                     const taskTimeEl = document.createElement('span');
                     // Format the scheduledAt property to show exact date, month, year, minute & seconds
-                    // Use task.scheduledAt which is expected from the backend
-                    const scheduledDate = new Date(task.scheduledAt); 
+                    const scheduledDate = new Date(task.scheduledAt);
                     const formattedDateTime = scheduledDate.toLocaleString('en-US', {
                         year: 'numeric',
                         month: 'numeric',
@@ -551,14 +551,7 @@
             let scheduledAt = null;
             if (dateTimeValue) {
                 const localDate = new Date(dateTimeValue);
-                if (isNaN(localDate.getTime())) { // Re-validate date just in case
-                    setStatus('The entered date and time is invalid. Please use a valid format (e.g., YYYY-MM-DDTHH:MM).', true);
-                    return;
-                }
-                // --- START OF FIXED CHANGE ---
-                // Send as full ISO string and use 'scheduledAt' as the key
-                scheduledAt = localDate.toISOString();
-                // --- END OF FIXED CHANGE ---
+                scheduledAt = localDate.toISOString(); // Convert to ISO string
             }
 
             try {
@@ -573,15 +566,11 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    // --- START OF FIXED CHANGE ---
-                    // Corrected: send 'scheduledAt' as the key, matching backend expectation
-                    body: JSON.stringify({ description, scheduledAt }) 
-                    // --- END OF FIXED CHANGE ---
+                    body: JSON.stringify({ description, scheduledAt }) // Send scheduledAt
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json(); // Attempt to read error message from backend
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 taskInput.value = ''; // Clear input
@@ -590,7 +579,7 @@
                 fetchTasks(); // Re-fetch tasks for current date
             } catch (error) {
                 console.error('Error adding task:', error);
-                setStatus(`Failed to add task: ${error.message}. Please try again.`, true);
+                setStatus('Failed to add task. Please try again.', true);
             }
         });
 
@@ -611,14 +600,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 setStatus(`Task marked as ${completed ? 'completed' : 'incomplete'}!`);
                 fetchTasks(); // Re-fetch tasks
             } catch (error) {
                 console.error('Error toggling task status:', error);
-                setStatus(`Failed to update task status: ${error.message}.`, true);
+                setStatus('Failed to update task status.', true);
             }
         };
 
@@ -640,14 +628,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 setStatus('Task deleted successfully!');
                 fetchTasks(); // Re-fetch tasks
             } catch (error) {
-                    console.error('Error deleting task:', error);
-                    setStatus(`Failed to delete task: ${error.message}.`, true);
+                console.error('Error deleting task:', error);
+                setStatus('Failed to delete task.', true);
             }
         };
 
@@ -684,8 +671,7 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -699,7 +685,7 @@
                 }
             } catch (error) {
                 console.error('Error with AI suggestion:', error);
-                aiSuggestionOutput.textContent = `Failed to get AI suggestion: ${error.message}. Please try again.`;
+                aiSuggestionOutput.textContent = 'Failed to get AI suggestion. Please try again.';
                 aiSuggestionOutput.style.color = 'red';
             }
         });
@@ -780,20 +766,15 @@
 
         // Function to update UI based on login status
         function updateAuthUI(isLoggedIn) {
-            const landingSection = document.getElementById('hero'); // Corrected ID
-            const tasksSection = document.getElementById('tasks'); // Corrected ID
-
             if (isLoggedIn) {
-                if (landingSection) landingSection.classList.add('hidden');
-                if (tasksSection) tasksSection.classList.remove('hidden');
                 authModalBtn.classList.add('hidden');
                 logoutBtn.classList.remove('hidden');
+                tasksSection.classList.remove('hidden');
                 fetchTasks(); // Fetch tasks when logged in
             } else {
-                if (landingSection) landingSection.classList.remove('hidden');
-                if (tasksSection) tasksSection.classList.add('hidden');
                 authModalBtn.classList.remove('hidden');
                 logoutBtn.classList.add('hidden');
+                tasksSection.classList.add('hidden');
                 taskList.innerHTML = ''; // Clear tasks if logged out
                 noTasksMessage.classList.remove('hidden'); // Show no tasks message
             }
@@ -976,12 +957,6 @@
             let scheduledAt = null;
             if (dateTimeValue) {
                 const localDate = new Date(dateTimeValue);
-                if (isNaN(localDate.getTime())) { // Validate date for edit form as well
-                    editTaskStatus.textContent = 'The entered date and time is invalid. Please use a valid format (e.g., YYYY-MM-DDTHH:MM).';
-                    editTaskStatus.classList.remove('hidden');
-                    editTaskStatus.classList.add('text-red-500');
-                    return;
-                }
                 scheduledAt = localDate.toISOString(); // Convert to ISO string
             }
 
@@ -1001,8 +976,7 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 setStatus('Task updated successfully!');
@@ -1010,7 +984,7 @@
                 fetchTasks(); // Re-fetch tasks to update the list
             } catch (error) {
                 console.error('Error updating task:', error);
-                editTaskStatus.textContent = `Failed to update task: ${error.message}. Please try again.`;
+                editTaskStatus.textContent = 'Failed to update task. Please try again.';
                 editTaskStatus.classList.remove('hidden');
                 editTaskStatus.classList.add('text-red-500');
             }
@@ -1077,77 +1051,6 @@
                 window.speechSynthesis.speak(utterance);
             };
 
-            // Helper function for basic natural language date/time parsing
-            const parseNaturalDateTime = (inputString) => {
-                let date = new Date(); // Start with current date
-                let timePart = '';
-                let dayOffset = 0; // 0 for today, 1 for tomorrow
-
-                // Handle "tomorrow"
-                const tomorrowMatch = inputString.match(/tomorrow(?: at (.+))?/i); // case-insensitive
-                if (tomorrowMatch) {
-                    dayOffset = 1;
-                    timePart = tomorrowMatch[1] || ''; // Capture time part if present
-                    inputString = inputString.replace(tomorrowMatch[0], '').trim(); // Remove "tomorrow" from string
-                }
-                // Handle "today"
-                else if (inputString.includes('today')) {
-                    dayOffset = 0; // Already today
-                    const todayMatch = inputString.match(/today(?: at (.+))?/i);
-                    timePart = todayMatch ? todayMatch[1] : '';
-                    inputString = inputString.replace(todayMatch[0], '').trim(); // Remove "today" from string
-                }
-
-                // Try to find a standalone time like "5pm", "5:00 pm", etc.
-                // This regex is more specific for time formats.
-                const timeOnlyRegex = /(?:at|by|for)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i; // \b for word boundary
-                const timeOnlyMatch = inputString.match(timeOnlyRegex);
-                if (timeOnlyMatch) {
-                    timePart = timeOnlyMatch[1];
-                    inputString = inputString.replace(timeOnlyMatch[0], '').trim(); // Remove time part from inputString
-                }
-
-                // Apply day offset first
-                date.setDate(date.getDate() + dayOffset);
-
-                // Try parsing the remaining input string as a date.
-                // This might parse "July 16th", "next Monday", etc., if `new Date` supports it.
-                // If it's just "5:00 pm" left, new Date() will likely return current date with time.
-                const potentialDate = new Date(inputString);
-                if (!isNaN(potentialDate.getTime())) {
-                    // Only use the date part from potentialDate if it's a valid parsed date
-                    // Don't overwrite the dayOffset applied earlier for "today"/"tomorrow"
-                    if (dayOffset === 0 && !inputString.includes('today') && !inputString.includes('tomorrow')) { // If it's not today/tomorrow relative, use potentialDate's day
-                         date.setFullYear(potentialDate.getFullYear(), potentialDate.getMonth(), potentialDate.getDate());
-                    }
-                }
-
-                if (timePart) {
-                    // Basic time parsing
-                    let hours = 0;
-                    let minutes = 0;
-                    const parsedTimeMatch = timePart.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-                    if (parsedTimeMatch) {
-                        hours = parseInt(parsedTimeMatch[1], 10);
-                        minutes = parseInt(parsedTimeMatch[2] || '0', 10);
-                        const ampm = parsedTimeMatch[3] ? parsedTimeMatch[3].toLowerCase() : '';
-
-                        if (ampm === 'pm' && hours < 12) {
-                            hours += 12;
-                        } else if (ampm === 'am' && hours === 12) { // 12 AM (midnight) is 0 hours
-                            hours = 0;
-                        }
-                    }
-                    date.setHours(hours, minutes, 0, 0); // Set time
-                } else {
-                     // If no time was specified, default to 9 AM
-                    date.setHours(9, 0, 0, 0);
-                }
-
-                return date; // Return the constructed date object
-            };
-
-
             recognition.onresult = async (event) => {
                 const commandText = event.results[0][0].transcript.toLowerCase();
                 console.log('Voice Command:', commandText);
@@ -1156,30 +1059,30 @@
 
                 // Define actions based on voice commands
                 // Add Task Command (more flexible for description and date/time)
+                // This now covers "add task", "create task", "schedule task", and optionally "my" or "called" before description.
                 if (commandText.includes('add task') || commandText.includes('create task') || commandText.includes('schedule task')) {
-                    // Adjusted regex to capture the description and then the potential date/time string
-                    // It looks for "add/create/schedule [my] tasks? [optional called] [description] [for/on/at] [date/time string]"
+                    // This regex tries to capture description and date/time from various phrasings.
+                    // It looks for "task" (optional "my" or "called"), then a description, then "for/on/at" and a date/time.
                     const taskMatch = commandText.match(/(?:add|create|schedule) (?:my )?tasks?(?: called)? (.+?) (?:for|on|at) (.+)/);
 
                     if (taskMatch) {
                         const description = taskMatch[1].trim();
                         const dateTimeString = taskMatch[2].trim();
-                        
-                        // Use the new natural language parser
-                        const parsedDate = parseNaturalDateTime(dateTimeString);
+                        const parsedDate = new Date(dateTimeString);
 
                         if (!isNaN(parsedDate.getTime())) {
                             taskInput.value = description;
                             taskDateTimeInput.value = parsedDate.toISOString().slice(0, 16);
                             taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                            responseText = `Attempting to add task: "${description}" for ${parsedDate.toLocaleString()}.`;
+                            responseText = `Attempting to add task: ${description} for ${parsedDate.toLocaleString()}.`;
                             actionPerformed = true;
                         } else {
-                            responseText = `Could not fully understand the date and time from "${dateTimeString}". Please try a format like "tomorrow at 5 PM" or "July 16th 2025 at 9 AM".`;
+                            responseText = `Could not parse date and time from "${dateTimeString}". Please be more specific with the date/time.`;
                         }
                     } else {
                         // If "add task" command is recognized but no full description/date is found in the same phrase
                         responseText = "Okay, I can add a task. Please tell me the task description and a date/time. For example: 'add task buy groceries for tomorrow at 5 PM'.";
+                        // Optionally, you could try to pre-fill taskInput.value here if a partial description was captured.
                         actionPerformed = true; // Still considered an understood command, even if it needs more input
                     }
                 }
@@ -1196,7 +1099,7 @@
                         responseText = "Please tell me what task you want a suggestion for, like 'suggest time for my meeting'.";
                     }
                 }
-                // Show tasks command
+                // Show tasks command (already updated in previous response for singular/plural)
                 else if (commandText.includes('show task for') || commandText.includes('show tasks for') ||
                          commandText.includes('list task for') || commandText.includes('list tasks for')) {
                     const dateMatch = commandText.match(/(?:show|list) tasks? for (.+)/); // Added 's?' for optional plural
@@ -1265,14 +1168,7 @@
                     speak(responseText); // Speak the specific action response
                     setAssistantStatus(responseText); // Display the status
                 }
-            };
-
-            window.speak = speak;
-        } else {
-            // Browser does not support Web Speech API
-            voiceAssistantBtn.style.display = 'none';
-            setStatus('Voice assistant not supported in this browser. Please use Chrome or Edge.', true);
-        }
+            }}
         // --- End AI Voice Assistant Logic ---
 
 
