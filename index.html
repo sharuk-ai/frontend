@@ -434,9 +434,17 @@
         // --- Task Management Logic ---
 
         const fetchTasks = async () => {
-            const date = currentSelectedDate.toISOString().split('T')[0];
-            const searchQuery = taskSearchInput.value.trim(); // Get current search input
-            let url = `${API_BASE_URL}/tasks?date=${date}`;
+            // currentSelectedDate is a Date object representing the start of the selected local day (00:00:00)
+            // Calculate the start of the selected day in UTC
+            const startOfDayLocal = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 0, 0, 0);
+            const startUtc = startOfDayLocal.toISOString();
+
+            // Calculate the end of the selected day in UTC (which is effectively start of next day UTC)
+            const endOfDayLocal = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 23, 59, 59, 999);
+            const endUtc = endOfDayLocal.toISOString();
+
+            const searchQuery = taskSearchInput.value.trim();
+            let url = `${API_BASE_URL}/tasks?start=${encodeURIComponent(startUtc)}&end=${encodeURIComponent(endUtc)}`;
 
             if (searchQuery) {
                 url += `&search=${encodeURIComponent(searchQuery)}`;
@@ -787,14 +795,14 @@
 
                 if (response.ok) {
                     // Send welcome email using EmailJS
-                    // Replace with your actual EmailJS Public Key, Service ID, and Template ID
-                    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+                    // !! IMPORTANT: Replace "YOUR_EMAILJS_PUBLIC_KEY", "YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID" with your actual EmailJS credentials !!
+                    emailjs.init("H6HQspTQi-01K9Ava"); // Replace with your actual EmailJS Public Key
                     const templateParams = {
                         to_email: email,
                         subject: "Welcome to Calndo!",
                         message: "Thank Ayou for registering with Calndo! We're excited to help you manage your tasks with AI."
                     };
-                    await emailjs.send("YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID", templateParams);
+                    await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams); // Replace with your actual EmailJS Service ID and Template ID
 
                     alert('Registration successful! Welcome email sent.'); // Or show a nicer notification
                     loginTab.click(); // Switch to login tab
@@ -822,6 +830,7 @@
 
         // --- Contact Form Logic (EmailJS) ---
         // Ensure EmailJS is initialized
+        // !! IMPORTANT: Replace "H6HQspTQi-01K9Ava" with your actual EmailJS Public Key !!
         emailjs.init("H6HQspTQi-01K9Ava"); // Replace with your actual EmailJS Public Key
 
         contactForm.addEventListener('submit', async (e) => {
@@ -849,8 +858,8 @@
             };
 
             try {
-                // Replace with your EmailJS Service ID and Template ID
-                await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams);
+                // !! IMPORTANT: Replace "service_yssyt0f" and "template_g1f0rha" with your actual EmailJS Service ID and Template ID !!
+                await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams); // Replace with your EmailJS Service ID and Template ID
                 contactStatus.textContent = 'Message sent successfully!';
                 contactStatus.classList.remove('text-red-500');
                 contactStatus.classList.add('text-green-500');
