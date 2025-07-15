@@ -296,7 +296,7 @@
 
     // Utility function to set general status messages (e.g., success/error)
     function setStatus(message, isError) {
-        const statusDiv = document.getElementById('status-message'); // Ensure you have an element with this ID
+        const statusDiv = document.getElementById('status-message'); // Ensure you have an element with this ID in your HTML
         if (statusDiv) {
             statusDiv.textContent = message;
             statusDiv.className = isError ? 'text-red-500 font-bold' : 'text-green-500';
@@ -311,13 +311,13 @@
             synth.cancel();
         }
         currentUtterance = new SpeechSynthesisUtterance(text);
-        currentUtterance.lang = 'en-US';
+        currentUtterance.lang = 'en-US'; // Set language for speech
         synth.speak(currentUtterance);
     }
 
     // Assistant status display
     function setAssistantStatus(message) {
-        const statusElement = document.getElementById('assistantStatus'); // Ensure you have an element with this ID
+        const statusElement = document.getElementById('assistantStatus'); // Ensure you have an element with this ID in your HTML
         if (statusElement) {
             statusElement.textContent = message;
         }
@@ -326,30 +326,30 @@
     // Modal functions: open and close any modal element
     function openModal(modalElement) {
         if (modalElement) {
-            modalElement.classList.remove('hidden');
+            modalElement.classList.remove('hidden'); // Remove 'hidden' class to show modal
             const overlay = document.getElementById('modal-backdrop'); // Assuming you have a full-screen modal backdrop
-            if (overlay) overlay.classList.remove('hidden');
+            if (overlay) overlay.classList.remove('hidden'); // Show the backdrop
         }
     }
 
     function closeModal(modalElement) {
         if (modalElement) {
-            modalElement.classList.add('hidden');
+            modalElement.classList.add('hidden'); // Add 'hidden' class to hide modal
             const overlay = document.getElementById('modal-backdrop'); // Assuming you have a full-screen modal backdrop
-            if (overlay) overlay.classList.add('hidden');
+            if (overlay) overlay.classList.add('hidden'); // Hide the backdrop
         }
     }
 
     // Function to clear authentication specific error messages
     function clearAuthErrors() {
-        const authErrorElement = document.getElementById('authError'); // Ensure you have an element with this ID
+        const authErrorElement = document.getElementById('authError'); // Ensure you have an element with this ID in your HTML
         if (authErrorElement) {
-            authErrorElement.textContent = '';
+            authErrorElement.textContent = ''; // Clear the error message
         }
     }
 
     // AI Natural Language Date/Time Parser
-    // This function attempts to parse human-readable date/time strings
+    // This function attempts to parse human-readable date/time strings (e.g., "tomorrow at 5 PM", "July 16th 2025 at 9 AM")
     const parseNaturalDateTime = (inputString) => {
         let date = new Date(); // Start with current date
         let timePart = '';
@@ -420,7 +420,7 @@
     // Placeholder for renderCalendar function (implement your calendar rendering here)
     function renderCalendar() {
         console.log("renderCalendar function called (placeholder). Implement your calendar rendering here.");
-        const calendarDiv = document.getElementById('calendar'); // Assuming a calendar div
+        const calendarDiv = document.getElementById('calendar'); // Assuming a calendar div in your HTML
         if (calendarDiv) {
             calendarDiv.innerHTML = '<h2>Calendar View (placeholder)</h2><p>Your calendar content will go here.</p>';
         }
@@ -432,7 +432,7 @@
             const token = localStorage.getItem('token');
             if (!token) {
                 console.log('Not logged in, cannot fetch tasks.');
-                const taskList = document.getElementById('task-list');
+                const taskList = document.getElementById('task-list'); // Assuming an element with this ID
                 if (taskList) taskList.innerHTML = '<p>Please log in to view your tasks.</p>';
                 return;
             }
@@ -440,7 +440,7 @@
             // Determine the date to fetch tasks for (e.g., today's date in YYYY-MM-DD format)
             const today = new Date();
             const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
             const day = String(today.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
 
@@ -462,7 +462,7 @@
                 }
                 tasks.forEach(task => {
                     const taskItem = document.createElement('div');
-                    taskItem.className = 'bg-white p-4 rounded-lg shadow-sm mb-2';
+                    taskItem.className = 'bg-white p-4 rounded-lg shadow-sm mb-2'; // Tailwind CSS classes
                     const taskDate = new Date(task.dateTime); // Ensure it's a Date object
                     taskItem.innerHTML = `
                         <h3 class="font-semibold">${task.description}</h3>
@@ -478,7 +478,7 @@
         }
     }
 
-    // Function to update UI elements based on authentication status
+    // Function to update UI elements based on authentication status (e.g., show/hide sections/buttons)
     function updateAuthUI(isLoggedIn) {
         const landingSection = document.getElementById('landing-section'); // Assuming this ID
         const tasksSection = document.getElementById('tasks-section'); // Assuming this ID
@@ -492,7 +492,7 @@
             if (loginBtn) loginBtn.classList.add('hidden');
             if (registerBtn) registerBtn.classList.add('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
-            fetchTasks(); // Fetch tasks only if logged in
+            fetchTasks(); // Fetch tasks only if user is logged in
         } else {
             if (landingSection) landingSection.classList.remove('hidden');
             if (tasksSection) tasksSection.classList.add('hidden');
@@ -504,10 +504,10 @@
 
     // Login form submission handler
     async function handleLogin(e) {
-        e.preventDefault();
+        e.preventDefault(); // Prevent default form submission
         const email = document.getElementById('login-email').value; // Assuming this ID
         const password = document.getElementById('login-password').value; // Assuming this ID
-        clearAuthErrors();
+        clearAuthErrors(); // Clear previous authentication errors
 
         try {
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -519,23 +519,23 @@
             if (!response.ok) {
                 throw new Error(data.message || 'Login failed');
             }
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('token', data.token); // Store JWT token
+            localStorage.setItem('isLoggedIn', 'true'); // Set login status
             setStatus('Login successful!', false);
-            closeModal(document.getElementById('authModal')); // Close auth modal after successful login
+            closeModal(document.getElementById('authModal')); // Close authentication modal
             updateAuthUI(true); // Update UI to logged-in state
         } catch (error) {
-            document.getElementById('authError').textContent = error.message; // Display auth error
+            document.getElementById('authError').textContent = error.message; // Display authentication error
             setStatus(`Login failed: ${error.message}`, true);
         }
     }
 
     // Register form submission handler
     async function handleRegister(e) {
-        e.preventDefault();
+        e.preventDefault(); // Prevent default form submission
         const email = document.getElementById('register-email').value; // Assuming this ID
         const password = document.getElementById('register-password').value; // Assuming this ID
-        clearAuthErrors();
+        clearAuthErrors(); // Clear previous authentication errors
 
         try {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -548,17 +548,17 @@
                 throw new Error(data.message || 'Registration failed');
             }
             setStatus('Registration successful! Please log in.', false);
-            document.getElementById('login-link').click(); // Automatically switch to login form
+            document.getElementById('login-link').click(); // Automatically switch to login form after successful registration
         } catch (error) {
-            document.getElementById('authError').textContent = error.message; // Display auth error
+            document.getElementById('authError').textContent = error.message; // Display authentication error
             setStatus(`Registration failed: ${error.message}`, true);
         }
     }
 
     // --- Main DOMContentLoaded Listener ---
-    // All DOM element selections and event listeners should be inside this to ensure elements exist
+    // All DOM element selections and event listeners should be inside this to ensure elements exist before script runs
     document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM Element Selections (Ensure these IDs match your HTML) ---
+        // --- DOM Element Selections (Ensure these IDs match your HTML structure) ---
         const statusMessage = document.getElementById('status-message');
         const assistantStatus = document.getElementById('assistantStatus');
 
@@ -577,7 +577,7 @@
         const taskInput = document.getElementById('taskInput');
         const taskDateTimeInput = document.getElementById('taskDateTimeInput');
         const taskForm = document.getElementById('taskForm');
-        const taskModal = document.getElementById('taskModal'); // <<< IMPORTANT: taskModal defined here
+        const taskModal = document.getElementById('taskModal'); // Correctly defining taskModal here
         const taskModalCloseBtn = document.getElementById('taskModalCloseBtn');
 
         const voiceAssistantBtn = document.getElementById('voiceAssistantBtn');
@@ -588,22 +588,22 @@
 
         // --- Event Listeners ---
 
-        // Authentication Modal Toggles (Login/Register link clicks)
+        // Authentication Modal Toggles (for switching between Login and Register forms)
         if (loginToggleBtn) {
             loginToggleBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                loginForm.classList.remove('hidden');
-                registerForm.classList.add('hidden');
-                clearAuthErrors(); // Clear errors when switching forms
+                loginForm.classList.remove('hidden'); // Show login form
+                registerForm.classList.add('hidden'); // Hide register form
+                clearAuthErrors(); // Clear any previous errors
             });
         }
 
         if (registerToggleBtn) {
             registerToggleBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                registerForm.classList.remove('hidden');
-                loginForm.classList.add('hidden');
-                clearAuthErrors(); // Clear errors when switching forms
+                registerForm.classList.remove('hidden'); // Show register form
+                loginForm.classList.add('hidden'); // Hide login form
+                clearAuthErrors(); // Clear any previous errors
             });
         }
 
@@ -611,24 +611,25 @@
         if (loginForm) loginForm.addEventListener('submit', handleLogin);
         if (registerForm) registerForm.addEventListener('submit', handleRegister);
 
-        // Logout Button
+        // Logout Button functionality
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
-                localStorage.removeItem('token'); // Clear token
-                localStorage.setItem('isLoggedIn', 'false'); // Update login status
+                localStorage.removeItem('token'); // Clear the stored JWT token
+                localStorage.setItem('isLoggedIn', 'false'); // Update local login status
                 setStatus('Logged out successfully!', false);
-                updateAuthUI(false); // Update UI to logged-out state
-                window.location.hash = ''; // Go back to landing page
+                updateAuthUI(false); // Update UI to reflect logged-out state
+                window.location.hash = ''; // Optionally redirect to landing page or clear hash
             });
         }
 
-        // Task Form Submission (includes previous date validation fix)
+        // Task Form Submission (includes robust date validation)
         if (taskForm) {
             taskForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+                e.preventDefault(); // Prevent default browser form submission
                 const description = taskInput.value.trim();
                 const dateTimeValue = taskDateTimeInput.value;
 
+                // Basic input validation
                 if (!description || !dateTimeValue) {
                     setStatus('Please enter both task description and date/time.', true);
                     return;
@@ -636,7 +637,7 @@
 
                 // Robust date validation before sending to backend
                 const localDate = new Date(dateTimeValue);
-                if (isNaN(localDate.getTime())) {
+                if (isNaN(localDate.getTime())) { // Check if the date object is "Invalid Date"
                     setStatus('The entered date and time is invalid. Please use a valid format (e.g., YYYY-MM-DDTHH:MM).', true);
                     return;
                 }
@@ -655,7 +656,7 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ description, dateTime: scheduledAt }) // Send as 'dateTime' to match backend
+                        body: JSON.stringify({ description, dateTime: scheduledAt }) // Ensure field name is 'dateTime' to match backend schema
                     });
 
                     if (!response.ok) {
@@ -665,34 +666,36 @@
 
                     const newTask = await response.json();
                     setStatus('Task added successfully!', false);
-                    taskInput.value = ''; // Clear input fields
+                    taskInput.value = ''; // Clear input fields after successful submission
                     taskDateTimeInput.value = '';
-                    fetchTasks(); // Refresh the task list display
+                    fetchTasks(); // Refresh the task list displayed on the page
                     closeModal(taskModal); // Close the task modal after successful submission
                 } catch (error) {
                     setStatus(`Error adding task: ${error.message}`, true);
-                    console.error('Error adding task:', error);
+                    console.error('Error adding task:', error); // Log detailed error to console
                 }
             });
         }
 
-        // --- AI Voice Assistant Logic ---
+        // --- AI Voice Assistant Logic --- (Requires a browser that supports Web Speech API, like Chrome)
         if (('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && voiceAssistantBtn) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.continuous = false; // Recognizes a single utterance
             recognition.interimResults = false; // Returns only final results
-            recognition.lang = 'en-US'; // Set language
+            recognition.lang = 'en-US'; // Set language for recognition
 
+            // Event listener to start voice recognition
             voiceAssistantBtn.addEventListener('click', () => {
                 if (synth.speaking) {
-                    synth.cancel(); // Stop any current speech
+                    synth.cancel(); // Stop any current speech synthesis
                 }
                 recognition.start(); // Start listening
                 setAssistantStatus('Listening...');
                 speak('Listening...');
             });
 
+            // Handle recognition results
             recognition.onresult = (event) => {
                 const commandText = event.results[0][0].transcript.toLowerCase().trim();
                 setAssistantStatus(`Heard: "${commandText}"`);
@@ -701,7 +704,7 @@
                 let responseText = "Sorry, I didn't understand that. Please try again.";
                 let actionPerformed = false;
 
-                // Command for adding a task with description and date/time
+                // Command for adding a task (e.g., "add task buy milk for tomorrow at 5 PM")
                 const taskMatch = commandText.match(/(?:add|create|schedule) (?:my )?tasks?(?: called)? (.+?) (?:for|on|at) (.+)/);
                 if (taskMatch) {
                     const description = taskMatch[1].trim();
@@ -710,8 +713,8 @@
 
                     if (!isNaN(parsedDate.getTime())) { // Check if the parsed date is valid
                         taskInput.value = description;
-                        taskDateTimeInput.value = parsedDate.toISOString().slice(0, 16); // Format for datetime-local input
-                        // Dispatch a submit event on the form to trigger the task creation logic
+                        taskDateTimeInput.value = parsedDate.toISOString().slice(0, 16); // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+                        // Dispatch a submit event on the form to trigger the task creation logic.
                         // This will also run the form's own validation (including the new date validation).
                         taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
                         responseText = `Attempting to add task: "${description}" for ${parsedDate.toLocaleString()}.`;
@@ -719,68 +722,65 @@
                     } else {
                         responseText = `Could not fully understand the date and time from "${dateTimeString}". Please try a format like "tomorrow at 5 PM" or "July 16th 2025 at 9 AM".`;
                         taskDateTimeInput.value = ''; // Clear input if parsing failed
-                        // Do NOT dispatch the form submit event if date parsing failed!
-                        // The user will need to manually correct the date/time in the input field.
                         actionPerformed = true; // Indicate that a command was recognized, even if not fully actionable.
                     }
                 }
-                // Command for greeting
+                // General greetings
                 else if (commandText.includes('hello') || commandText.includes('hi')) {
                     responseText = "Hello there! How can I help you today?";
                     actionPerformed = true;
                 }
-                // Command for goodbye
+                // Goodbye commands
                 else if (commandText.includes('goodbye') || commandText.includes('bye')) {
                     responseText = "Goodbye! Have a great day.";
                     actionPerformed = true;
                 }
 
-                speak(responseText); // Speak the response
+                speak(responseText); // Speak the determined response
                 setAssistantStatus(responseText); // Display the spoken response in status area
             };
 
+            // Handle recognition errors
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
                 setAssistantStatus(`Error: ${event.error}`);
                 speak(`Error: ${event.error}`);
             };
 
+            // Handle recognition end event
             recognition.onend = () => {
                 // Reset status after recognition ends, unless new speech is queued
                 if (!currentUtterance || !synth.speaking) {
                     setAssistantStatus('Click to speak');
                 }
             };
-            window.speak = speak; // Make speak accessible globally if needed (e.g., from console)
+            window.speak = speak; // Make speak accessible globally if needed (e.g., from console for debugging)
         } else {
-            // Browser does not support Web Speech API
-            if (voiceAssistantBtn) voiceAssistantBtn.style.display = 'none';
-            setStatus('Voice assistant not supported in this browser. Please use Chrome or Edge.', true);
+            // If browser does not support Web Speech API
+            if (voiceAssistantBtn) voiceAssistantBtn.style.display = 'none'; // Hide the button
+            setStatus('Voice assistant not supported in this browser. Please use Chrome or Edge for voice commands.', true);
         }
         // --- End AI Voice Assistant Logic ---
 
 
         // Initial Render calls
-        renderCalendar();
-        // fetchTasks(); // Initial fetch of tasks is now handled by updateAuthUI based on login status
+        renderCalendar(); // Render the calendar on page load
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // Check user's login status from localStorage
+        updateAuthUI(isLoggedIn); // Update UI elements based on initial login status
 
-        // Check login status on page load
-        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-        updateAuthUI(isLoggedIn); // Update UI based on initial login status
-
-        // Event listener for "Get Started" button to open auth modal or redirect
+        // Event listener for "Get Started" button (on the landing page)
         if (getStartedBtn) {
             getStartedBtn.addEventListener('click', () => {
                 const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
                 if (isLoggedIn) {
                     window.location.href = '#tasks'; // If already logged in, redirect to tasks section
                 } else {
-                    openAuthModal(); // If not logged in, open the auth modal
+                    openModal(authModal); // If not logged in, open the authentication modal
                 }
             });
         }
 
-        // Modal close buttons (assuming you have close buttons for authModal and taskModal)
+        // Modal close buttons (for both authentication and task modals)
         const authModalCloseBtn = document.getElementById('authModalCloseBtn');
         if (authModalCloseBtn) {
             authModalCloseBtn.addEventListener('click', () => closeModal(authModal));
@@ -789,11 +789,11 @@
             taskModalCloseBtn.addEventListener('click', () => closeModal(taskModal));
         }
         // Close modals when the backdrop is clicked
-        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalBackdrop = document.getElementById('modal-backdrop'); // Assuming a single backdrop for all modals
         if (modalBackdrop) {
             modalBackdrop.addEventListener('click', () => {
-                closeModal(authModal);
-                closeModal(taskModal); // Close all potentially open modals
+                closeModal(authModal); // Close auth modal
+                closeModal(taskModal); // Close task modal
             });
         }
     }); // End DOMContentLoaded
