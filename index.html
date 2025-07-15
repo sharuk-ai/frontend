@@ -295,8 +295,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         // --- API Base URL ---
-        // IMPORTANT: Ensure this matches your Render backend URL with the /api prefix
-        const API_BASE_URL = 'https://backend-uuqk.onrender.com/api';
+        const API_BASE_URL = 'http://localhost:3000/api/'; // Use localhost for local development, change for deployment
 
         // --- DOM Elements ---
         const authModal = document.getElementById('authModal');
@@ -402,7 +401,7 @@
             // Set taskDateTime to currentSelectedDate at 9 AM for convenience
             const today = new Date();
             const defaultTime = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 9, 0); // Set to 9 AM
-            taskDateTimeInput.value = defaultTime.toISOString().slice(0, 16); // Use taskDateTimeInput
+            taskDateTime.value = defaultTime.toISOString().slice(0, 16);
         };
 
 
@@ -436,26 +435,12 @@
             }
 
             try {
-                const token = localStorage.getItem('token'); // Get JWT token
-                if (!token) {
-                    setStatus('You need to log in to view tasks.', true);
-                    noTasksMessage.classList.remove('hidden');
-                    taskList.innerHTML = '';
-                    return;
-                }
-
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
+                const response = await fetch(url);
                 if (!response.ok) {
                     if (response.status === 401) {
-                        setStatus('Session expired or unauthorized. Please log in again.', true);
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('isLoggedIn');
-                        updateAuthUI(false); // Update UI to logged out state
+                        setStatus('You need to log in to view tasks.', true);
+                        noTasksMessage.classList.remove('hidden');
+                        taskList.innerHTML = ''; // Clear tasks if unauthorized
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -476,8 +461,7 @@
                 noTasksMessage.classList.remove('hidden');
             } else {
                 noTasksMessage.classList.add('hidden');
-                // Sort by scheduledAt (full datetime)
-                tasks.sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+                tasks.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime)); // Sort by time
                 tasks.forEach(task => {
                     const taskItem = document.createElement('div');
                     taskItem.className = 'flex flex-col md:flex-row items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200';
@@ -491,19 +475,9 @@
                     taskDescriptionEl.className = task.completed ? 'line-through text-gray-500' : 'text-gray-800 font-medium';
 
                     const taskTimeEl = document.createElement('span');
-                    // Format the scheduledAt property to show exact date, month, year, minute & seconds
-                    const scheduledDate = new Date(task.scheduledAt);
-                    const formattedDateTime = scheduledDate.toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: true
-                    });
-                    taskTimeEl.textContent = ` (${formattedDateTime})`;
-                    taskTimeEl.className = 'text-sm text-gray-500 ml-2'; // Keep class
+                    const taskDateTimeFormatted = new Date(task.dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    taskTimeEl.textContent = ` (${taskDateTimeFormatted})`;
+                    taskTimeEl.className = 'text-sm text-gray-500 ml-2';
 
                     taskTextContent.appendChild(taskDescriptionEl);
                     taskTextContent.appendChild(taskTimeEl);
@@ -541,32 +515,20 @@
         taskForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const description = taskInput.value.trim();
-            const dateTimeValue = taskDateTimeInput.value; // Use taskDateTimeInput
+            const dateTime = taskDateTime.value;
 
-            if (!description || !dateTimeValue) {
+            if (!description || !dateTime) {
                 setStatus('Please enter both task description and date/time.', true);
                 return;
             }
 
-            let scheduledAt = null;
-            if (dateTimeValue) {
-                const localDate = new Date(dateTimeValue);
-                scheduledAt = localDate.toISOString(); // Convert to ISO string
-            }
-
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to add tasks.', true);
-                    return;
-                }
                 const response = await fetch(`${API_BASE_URL}/tasks`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ description, scheduledAt }) // Send scheduledAt
+                    body: JSON.stringify({ description, dateTime })
                 });
 
                 if (!response.ok) {
@@ -574,7 +536,6 @@
                 }
 
                 taskInput.value = ''; // Clear input
-                taskDateTimeInput.value = ''; // Clear date/time input
                 setStatus('Task added successfully!');
                 fetchTasks(); // Re-fetch tasks for current date
             } catch (error) {
@@ -585,16 +546,10 @@
 
         const toggleTaskCompleted = async (id, completed) => {
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to update tasks.', true);
-                    return;
-                }
                 const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ completed })
                 });
@@ -615,16 +570,8 @@
                 return;
             }
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to delete tasks.', true);
-                    return;
-                }
                 const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    method: 'DELETE'
                 });
 
                 if (!response.ok) {
@@ -653,19 +600,10 @@
             aiSuggestionOutput.classList.remove('hidden');
 
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to get AI suggestions.', true);
-                    aiSuggestionOutput.textContent = 'Please log in to get AI suggestions.';
-                    aiSuggestionOutput.style.color = 'red';
-                    return;
-                }
-
                 const response = await fetch(`${API_BASE_URL}/tasks/suggest-time`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ description: taskDescription })
                 });
@@ -801,7 +739,7 @@
 
                 if (response.ok) {
                     localStorage.setItem('isLoggedIn', 'true'); // Store login status
-                    localStorage.setItem('token', data.token); // Store JWT token
+                    // In a real app, you'd store a JWT token here: localStorage.setItem('token', data.token);
                     updateAuthUI(true);
                     closeAuthModal();
                     alert('Logged in successfully!'); // Or show a nicer notification
@@ -838,13 +776,13 @@
                 if (response.ok) {
                     // Send welcome email using EmailJS
                     // Replace with your actual EmailJS Public Key, Service ID, and Template ID
-                    emailjs.init("H6HQspTQi-01K9Ava"); // Ensure this is your public key
+                    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
                     const templateParams = {
                         to_email: email,
                         subject: "Welcome to Calndo!",
                         message: "Thank Ayou for registering with Calndo! We're excited to help you manage your tasks with AI."
                     };
-                    await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams); // Ensure these are your service/template IDs
+                    await emailjs.send("YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID", templateParams);
 
                     alert('Registration successful! Welcome email sent.'); // Or show a nicer notification
                     loginTab.click(); // Switch to login tab
@@ -863,7 +801,7 @@
         // Logout functionality
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('isLoggedIn'); // Remove login status
-            localStorage.removeItem('token'); // Remove the JWT token
+            // In a real app, you'd also remove the JWT token: localStorage.removeItem('token');
             updateAuthUI(false);
             alert('Logged out successfully!');
             // Optional: Redirect to home or hero section
@@ -921,8 +859,8 @@
         function openEditTaskModal(task) {
             editTaskId.value = task._id;
             editTaskDescription.value = task.description;
-            // Format date for datetime-local input, using task.scheduledAt
-            const taskDate = new Date(task.scheduledAt); // Use scheduledAt
+            // Format date for datetime-local input
+            const taskDate = new Date(task.dateTime);
             editTaskDateTime.value = taskDate.toISOString().slice(0, 16);
             editTaskCompleted.checked = task.completed;
             editTaskStatus.classList.add('hidden'); // Clear previous status
@@ -944,35 +882,23 @@
             e.preventDefault();
             const id = editTaskId.value;
             const description = editTaskDescription.value.trim();
-            const dateTimeValue = editTaskDateTime.value; // Get value from datetime-local input
+            const dateTime = editTaskDateTime.value;
             const completed = editTaskCompleted.checked;
 
-            if (!description || !dateTimeValue) {
+            if (!description || !dateTime) {
                 editTaskStatus.textContent = 'Description and Date/Time are required.';
                 editTaskStatus.classList.remove('hidden');
                 editTaskStatus.classList.add('text-red-500');
                 return;
             }
 
-            let scheduledAt = null;
-            if (dateTimeValue) {
-                const localDate = new Date(dateTimeValue);
-                scheduledAt = localDate.toISOString(); // Convert to ISO string
-            }
-
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to update tasks.', true);
-                    return;
-                }
                 const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ description, scheduledAt, completed }) // Send scheduledAt
+                    body: JSON.stringify({ description, dateTime, completed })
                 });
 
                 if (!response.ok) {
@@ -1058,32 +984,24 @@
                 let actionPerformed = false;
 
                 // Define actions based on voice commands
-                // Add Task Command (more flexible for description and date/time)
-                // This now covers "add task", "create task", "schedule task", and optionally "my" or "called" before description.
-                if (commandText.includes('add task') || commandText.includes('create task') || commandText.includes('schedule task')) {
-                    // This regex tries to capture description and date/time from various phrasings.
-                    // It looks for "task" (optional "my" or "called"), then a description, then "for/on/at" and a date/time.
-                    const taskMatch = commandText.match(/(?:add|create|schedule) (?:my )?tasks?(?: called)? (.+?) (?:for|on|at) (.+)/);
-
+                // Add Task Command
+                if (commandText.includes('add task') && commandText.includes('called')) {
+                    const taskMatch = commandText.match(/add task called (.+?) (for|on|at) (.+)/);
                     if (taskMatch) {
                         const description = taskMatch[1].trim();
-                        const dateTimeString = taskMatch[2].trim();
+                        const dateTimeString = taskMatch[3].trim();
                         const parsedDate = new Date(dateTimeString);
-
                         if (!isNaN(parsedDate.getTime())) {
                             taskInput.value = description;
-                            taskDateTimeInput.value = parsedDate.toISOString().slice(0, 16);
+                            taskDateTime.value = parsedDate.toISOString().slice(0, 16);
                             taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
                             responseText = `Attempting to add task: ${description} for ${parsedDate.toLocaleString()}.`;
                             actionPerformed = true;
                         } else {
-                            responseText = `Could not parse date and time from "${dateTimeString}". Please be more specific with the date/time.`;
+                            responseText = `Could not parse date and time from "${dateTimeString}". Please be more specific.`;
                         }
                     } else {
-                        // If "add task" command is recognized but no full description/date is found in the same phrase
-                        responseText = "Okay, I can add a task. Please tell me the task description and a date/time. For example: 'add task buy groceries for tomorrow at 5 PM'.";
-                        // Optionally, you could try to pre-fill taskInput.value here if a partial description was captured.
-                        actionPerformed = true; // Still considered an understood command, even if it needs more input
+                        responseText = "Please specify the task description and when, for example: 'add task called buy groceries for tomorrow at 5 PM'.";
                     }
                 }
                 // Suggest Time Command
@@ -1099,10 +1017,9 @@
                         responseText = "Please tell me what task you want a suggestion for, like 'suggest time for my meeting'.";
                     }
                 }
-                // Show tasks command (already updated in previous response for singular/plural)
-                else if (commandText.includes('show task for') || commandText.includes('show tasks for') ||
-                         commandText.includes('list task for') || commandText.includes('list tasks for')) {
-                    const dateMatch = commandText.match(/(?:show|list) tasks? for (.+)/); // Added 's?' for optional plural
+                // Show tasks command
+                else if (commandText.includes('show tasks for')) {
+                    const dateMatch = commandText.match(/show tasks for (.+)/);
                     if (dateMatch) {
                         const dateString = dateMatch[1].trim();
                         let targetDate = new Date();
@@ -1126,7 +1043,6 @@
                                 targetDate = parsed;
                             } else {
                                 responseText = `Could not understand the date "${dateString}". Showing tasks for today.`;
-                                targetDate = now; // Fallback to today
                             }
                         }
                         currentSelectedDate = targetDate;
@@ -1135,23 +1051,11 @@
                         renderCalendar(); // This will re-render calendar and re-fetch tasks for the date
                         responseText = `Showing tasks for ${currentSelectedDate.toLocaleDateString()}.`;
                         actionPerformed = true;
-                    } else {
-                         responseText = "Please specify a date or phrase like 'show tasks for tomorrow'.";
                     }
                 }
                 // What's the date?
                 else if (commandText.includes("what's the date") || commandText.includes("what is the date")) {
                     responseText = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
-                    actionPerformed = true;
-                }
-                // Complete task command (basic)
-                else if (commandText.includes('complete task') || commandText.includes('mark task complete')) {
-                    responseText = "To complete a task, please use the 'Edit' button next to the task on your list, or say 'complete task [task title]' if I supported more advanced NLP.";
-                    actionPerformed = true;
-                }
-                 // Delete task command (basic)
-                else if (commandText.includes('delete task') || commandText.includes('remove task')) {
-                    responseText = "To delete a task, please use the 'Delete' button next to the task on your list, or say 'delete task [task title]' if I supported more advanced NLP.";
                     actionPerformed = true;
                 }
                  // Farewell
@@ -1160,15 +1064,16 @@
                     actionPerformed = true;
                 }
 
-                // If no specific action was performed by matching a command, speak the default response.
-                if (!actionPerformed) {
-                    speak(responseText); // Speak the default "Sorry, I didn't understand that"
-                    setAssistantStatus(responseText); // Display the status
-                } else {
-                    speak(responseText); // Speak the specific action response
-                    setAssistantStatus(responseText); // Display the status
-                }
-            }}
+                speak(responseText);
+                setAssistantStatus(responseText); // Display the spoken response
+            };
+
+            window.speak = speak;
+        } else {
+            // Browser does not support Web Speech API
+            voiceAssistantBtn.style.display = 'none';
+            setStatus('Voice assistant not supported in this browser. Please use Chrome or Edge.', true);
+        }
         // --- End AI Voice Assistant Logic ---
 
 
