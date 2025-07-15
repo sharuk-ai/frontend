@@ -291,13 +291,43 @@
 
 
 <script>
-    AOS.init(); // Initialize AOS library
+    // Define API_BASE_URL globally
+    const API_BASE_URL = 'https://backend-uuqk.onrender.com/api';
 
-        function openModal(modalElement) {
+    // Utility function to set general status messages (e.g., success/error)
+    function setStatus(message, isError) {
+        const statusDiv = document.getElementById('status-message'); // Ensure you have an element with this ID
+        if (statusDiv) {
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'text-red-500 font-bold' : 'text-green-500';
+        }
+    }
+
+    // Voice synthesis setup
+    const synth = window.speechSynthesis;
+    let currentUtterance = null;
+    function speak(text) {
+        if (synth.speaking) {
+            synth.cancel();
+        }
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        currentUtterance.lang = 'en-US';
+        synth.speak(currentUtterance);
+    }
+
+    // Assistant status display
+    function setAssistantStatus(message) {
+        const statusElement = document.getElementById('assistantStatus'); // Ensure you have an element with this ID
+        if (statusElement) {
+            statusElement.textContent = message;
+        }
+    }
+
+    // Modal functions: open and close any modal element
+    function openModal(modalElement) {
         if (modalElement) {
             modalElement.classList.remove('hidden');
-            // You might also have logic to show an overlay backdrop
-            const overlay = document.getElementById('modal-backdrop'); // If you have a backdrop
+            const overlay = document.getElementById('modal-backdrop'); // Assuming you have a full-screen modal backdrop
             if (overlay) overlay.classList.remove('hidden');
         }
     }
@@ -305,972 +335,426 @@
     function closeModal(modalElement) {
         if (modalElement) {
             modalElement.classList.add('hidden');
-            // You might also have logic to hide an overlay backdrop
-            const overlay = document.getElementById('modal-backdrop'); // If you have a backdrop
+            const overlay = document.getElementById('modal-backdrop'); // Assuming you have a full-screen modal backdrop
             if (overlay) overlay.classList.add('hidden');
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- API Base URL ---
-        // IMPORTANT: Ensure this matches your Render backend URL with the /api prefix
-        const API_BASE_URL = 'https://backend-uuqk.onrender.com/api';
+    // Function to clear authentication specific error messages
+    function clearAuthErrors() {
+        const authErrorElement = document.getElementById('authError'); // Ensure you have an element with this ID
+        if (authErrorElement) {
+            authErrorElement.textContent = '';
+        }
+    }
 
-        // --- DOM Elements ---
-        const authModal = document.getElementById('authModal');
-        const authModalBtn = document.getElementById('authModalBtn');
-        const closeButton = authModal.querySelector('.close-button');
-        const loginTab = document.getElementById('loginTab');
-        const signupTab = document.getElementById('signupTab');
-        const loginContent = document.getElementById('loginContent');
-        const signupContent = document.getElementById('signupContent');
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const loginStatus = document.getElementById('loginStatus');
-        const signupStatus = document.getElementById('signupStatus');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const tasksSection = document.getElementById('tasks');
-        const taskForm = document.getElementById('taskForm');
-        const taskInput = document.getElementById('taskInput');
-        const taskDateTimeInput = document.getElementById('taskDateTime');
-        const taskList = document.getElementById('taskList');
-        const noTasksMessage = document.getElementById('noTasksMessage');
-        const aiTaskInput = document.getElementById('aiTaskInput');
-        const suggestTimeBtn = document.getElementById('suggestTimeBtn');
-        const aiSuggestionOutput = document.getElementById('aiSuggestionOutput');
-        const taskStatus = document.getElementById('taskStatus');
-        const voiceAssistantBtn = document.getElementById('voiceAssistantBtn');
-        const voiceAssistantStatus = document.getElementById('voiceAssistantStatus');
-        const contactForm = document.getElementById('contactForm');
-        const contactStatus = document.getElementById('contactStatus');
-        const getStartedBtn = document.getElementById('getStartedBtn');
+    // AI Natural Language Date/Time Parser
+    // This function attempts to parse human-readable date/time strings
+    const parseNaturalDateTime = (inputString) => {
+        let date = new Date(); // Start with current date
+        let timePart = '';
+        let dayOffset = 0; // 0 for today, 1 for tomorrow
 
-        // New Elements for Search and Edit
-        const toggleSearchBtn = document.getElementById('toggleSearchBtn'); // New search icon button
-        const taskSearchInput = document.getElementById('taskSearchInput');
-        const editTaskModal = document.getElementById('editTaskModal');
-        const editTaskForm = document.getElementById('editTaskForm');
-        const editTaskId = document.getElementById('editTaskId');
-        const editTaskDescription = document.getElementById('editTaskDescription');
-        const editTaskDateTime = document.getElementById('editTaskDateTime');
-        const editTaskCompleted = document.getElementById('editTaskCompleted');
-        const editTaskStatus = document.getElementById('editTaskStatus');
-
-
-        // --- Calendar Logic ---
-        let currentMonth = new Date().getMonth();
-        let currentYear = new Date().getFullYear();
-        let currentSelectedDate = new Date(); // Tracks the currently selected day for tasks
-
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-        const renderCalendar = () => {
-            const calendarEl = document.getElementById('calendar');
-            const currentMonthYearEl = document.getElementById('currentMonthYear');
-            calendarEl.innerHTML = ''; // Clear previous days
-
-            // Add day names row
-            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            dayNames.forEach(day => {
-                const dayNameEl = document.createElement('div');
-                dayNameEl.className = 'text-center font-semibold py-2 text-gray-600';
-                dayNameEl.textContent = day; // Add text content
-                calendarEl.appendChild(dayNameEl);
-            });
-
-            currentMonthYearEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-
-            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-            // Add blank spaces for days before the 1st
-            for (let i = 0; i < firstDayOfMonth; i++) {
-                const blankDay = document.createElement('div');
-                blankDay.className = 'p-2 text-center text-gray-400';
-                calendarEl.appendChild(blankDay);
-            }
-
-            // Add days of the month
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'p-2 text-center rounded-lg cursor-pointer hover:bg-teal-100 transition duration-200 relative';
-                dayEl.textContent = day;
-                dayEl.dataset.date = new Date(currentYear, currentMonth, day).toISOString().split('T')[0];
-
-                if (dayEl.dataset.date === currentSelectedDate.toISOString().split('T')[0]) {
-                    dayEl.classList.add('bg-teal-500', 'text-white', 'font-bold');
-                } else if (new Date(currentYear, currentMonth, day).toDateString() === new Date().toDateString()) {
-                    dayEl.classList.add('bg-gray-200', 'font-medium'); // Highlight today
-                }
-
-                dayEl.addEventListener('click', () => {
-                    currentSelectedDate = new Date(currentYear, currentMonth, day);
-                    renderCalendar(); // Re-render to update selected day highlight
-                    updateSelectedDateDisplay();
-                    fetchTasks(); // Fetch tasks for the newly selected date
-                });
-                calendarEl.appendChild(dayEl);
-            }
-            updateSelectedDateDisplay();
-            fetchTasks(); // Initial fetch (will be called again by updateAuthUI if logged in)
-        };
-
-        const updateSelectedDateDisplay = () => {
-            document.getElementById('selectedDateDisplay').textContent = currentSelectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            // Set taskDateTime to currentSelectedDate at 9 AM for convenience
-            const today = new Date();
-            const defaultTime = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 9, 0); // Set to 9 AM
-            taskDateTimeInput.value = defaultTime.toISOString().slice(0, 16); // Use taskDateTimeInput
-        };
-
-
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-        });
-
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-        });
-
-        // --- Task Management Logic ---
-
-        const fetchTasks = async () => {
-            const date = currentSelectedDate.toISOString().split('T')[0];
-            const searchQuery = taskSearchInput.value.trim(); // Get current search input
-            let url = `${API_BASE_URL}/tasks?date=${date}`;
-
-            if (searchQuery) {
-                url += `&search=${encodeURIComponent(searchQuery)}`;
-            }
-
-            try {
-                const token = localStorage.getItem('token'); // Get JWT token
-                if (!token) {
-                    setStatus('You need to log in to view tasks.', true);
-                    noTasksMessage.classList.remove('hidden');
-                    taskList.innerHTML = '';
-                    return;
-                }
-
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        setStatus('Session expired or unauthorized. Please log in again.', true);
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('isLoggedIn');
-                        updateAuthUI(false); // Update UI to logged out state
-                        return;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const tasks = await response.json();
-                renderTasks(tasks);
-            } catch (error) {
-                console.error('Error fetching tasks:', error);
-                setStatus('Failed to load tasks. Please try again.', true);
-                noTasksMessage.classList.remove('hidden');
-                taskList.innerHTML = '';
-            }
-        };
-
-        const renderTasks = (tasks) => {
-            taskList.innerHTML = '';
-            if (tasks.length === 0) {
-                noTasksMessage.classList.remove('hidden');
-            } else {
-                noTasksMessage.classList.add('hidden');
-                // Sort by scheduledAt (full datetime)
-                tasks.sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
-                tasks.forEach(task => {
-                    const taskItem = document.createElement('div');
-                    taskItem.className = 'flex flex-col md:flex-row items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200';
-                    taskItem.dataset.id = task._id;
-
-                    const taskTextContent = document.createElement('span');
-                    taskTextContent.className = 'flex-grow text-gray-800 mb-2 md:mb-0';
-
-                    const taskDescriptionEl = document.createElement('span');
-                    taskDescriptionEl.textContent = task.description;
-                    taskDescriptionEl.className = task.completed ? 'line-through text-gray-500' : 'text-gray-800 font-medium';
-
-                    const taskTimeEl = document.createElement('span');
-                    // Format the scheduledAt property to show exact date, month, year, minute & seconds
-                    const scheduledDate = new Date(task.scheduledAt);
-                    const formattedDateTime = scheduledDate.toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: true
-                    });
-                    taskTimeEl.textContent = ` (${formattedDateTime})`;
-                    taskTimeEl.className = 'text-sm text-gray-500 ml-2'; // Keep class
-
-                    taskTextContent.appendChild(taskDescriptionEl);
-                    taskTextContent.appendChild(taskTimeEl);
-
-                    const actionsDiv = document.createElement('div');
-                    // UPDATED CLASSES FOR ACTIONS DIV FOR BETTER VISIBILITY AND RESPONSIVENESS
-                    actionsDiv.className = 'flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-4';
-
-                    const editBtn = document.createElement('button');
-                    editBtn.textContent = 'Edit';
-                    editBtn.className = 'px-4 py-2 bg-blue-500 text-white rounded-full text-base hover:bg-blue-600 transition duration-300 shadow-md';
-                    editBtn.addEventListener('click', () => openEditTaskModal(task));
-
-                    const completeBtn = document.createElement('button');
-                    completeBtn.textContent = task.completed ? 'Undo' : 'Complete';
-                    completeBtn.className = `px-4 py-2 rounded-full text-white text-base ${task.completed ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'} transition duration-300 shadow-md`;
-                    completeBtn.addEventListener('click', () => toggleTaskCompleted(task._id, !task.completed));
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = 'Delete';
-                    deleteBtn.className = 'px-4 py-2 bg-red-500 text-white rounded-full text-base hover:bg-red-600 transition duration-300 shadow-md';
-                    deleteBtn.addEventListener('click', () => deleteTask(task._id));
-
-                    actionsDiv.appendChild(editBtn);
-                    actionsDiv.appendChild(completeBtn);
-                    actionsDiv.appendChild(deleteBtn);
-
-                    taskItem.appendChild(taskTextContent);
-                    taskItem.appendChild(actionsDiv);
-                    taskList.appendChild(taskItem);
-                });
-            }
-        };
-
-        taskForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const description = taskInput.value.trim();
-        const dateTimeValue = taskDateTimeInput.value; // Get value from the datetime-local input
-
-        if (!description || !dateTimeValue) {
-            setStatus('Please enter both task description and date/time.', true);
-            return;
+        // Handle "tomorrow"
+        const tomorrowMatch = inputString.match(/tomorrow(?: at (.+))?/i);
+        if (tomorrowMatch) {
+            dayOffset = 1;
+            timePart = tomorrowMatch[1] || ''; // Capture time part if present
+            inputString = inputString.replace(tomorrowMatch[0], '').trim(); // Remove "tomorrow" from string
+        }
+        // Handle "today"
+        else if (inputString.includes('today')) {
+            dayOffset = 0; // Already today
+            const todayMatch = inputString.match(/today(?: at (.+))?/i);
+            timePart = todayMatch ? todayMatch[1] : '';
+            inputString = inputString.replace(todayMatch[0], '').trim(); // Remove "today" from string
         }
 
-        const localDate = new Date(dateTimeValue); // Attempt to parse the input field's value
-
-        // --- ADD THIS NEW VALIDATION CHECK ---
-        if (isNaN(localDate.getTime())) {
-            setStatus('The entered date and time is invalid. Please use a valid format (e.g., YYYY-MM-DDTHH:MM).', true);
-            return; // Stop the form submission if the date is invalid
+        // Try to find a standalone time like "5pm", "5:00 pm", etc.
+        const timeOnlyRegex = /(?:at|by|for)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i; // \b for word boundary
+        const timeOnlyMatch = inputString.match(timeOnlyRegex);
+        if (timeOnlyMatch) {
+            timePart = timeOnlyMatch[1];
+            inputString = inputString.replace(timeOnlyMatch[0], '').trim(); // Remove time part from inputString
         }
-        // --- END NEW VALIDATION CHECK ---
 
-        const scheduledAt = localDate.toISOString(); // Convert to ISO string for backend
+        // Apply day offset first
+        date.setDate(date.getDate() + dayOffset);
 
+        // Try parsing the remaining input string as a date.
+        // If inputString is now just description, new Date(inputString) will be Invalid Date, which is fine.
+        const potentialDate = new Date(inputString);
+        if (!isNaN(potentialDate.getTime())) {
+            // Only use the date part from potentialDate if it's a valid parsed date
+            // and if a relative day (today/tomorrow) wasn't specified explicitly.
+            if (dayOffset === 0 && !inputString.includes('today') && !inputString.includes('tomorrow')) {
+                date.setFullYear(potentialDate.getFullYear(), potentialDate.getMonth(), potentialDate.getDate());
+            }
+        }
+
+        if (timePart) {
+            // Basic time parsing
+            let hours = 0;
+            let minutes = 0;
+            const parsedTimeMatch = timePart.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+            if (parsedTimeMatch) {
+                hours = parseInt(parsedTimeMatch[1], 10);
+                minutes = parseInt(parsedTimeMatch[2] || '0', 10);
+                const ampm = parsedTimeMatch[3] ? parsedTimeMatch[3].toLowerCase() : '';
+
+                if (ampm === 'pm' && hours < 12) {
+                    hours += 12;
+                } else if (ampm === 'am' && hours === 12) { // 12 AM (midnight) is 0 hours
+                    hours = 0;
+                }
+            }
+            date.setHours(hours, minutes, 0, 0); // Set time
+        } else {
+            // If no time was specified, default to 9 AM
+            date.setHours(9, 0, 0, 0);
+        }
+
+        return date; // Return the constructed date object
+    };
+
+    // Placeholder for renderCalendar function (implement your calendar rendering here)
+    function renderCalendar() {
+        console.log("renderCalendar function called (placeholder). Implement your calendar rendering here.");
+        const calendarDiv = document.getElementById('calendar'); // Assuming a calendar div
+        if (calendarDiv) {
+            calendarDiv.innerHTML = '<h2>Calendar View (placeholder)</h2><p>Your calendar content will go here.</p>';
+        }
+    }
+
+    // Function to fetch and display tasks
+    async function fetchTasks() {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                setStatus('Please log in to add tasks.', true);
+                console.log('Not logged in, cannot fetch tasks.');
+                const taskList = document.getElementById('task-list');
+                if (taskList) taskList.innerHTML = '<p>Please log in to view your tasks.</p>';
                 return;
             }
-            const response = await fetch(`${API_BASE_URL}/tasks`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ description, dateTime: scheduledAt }) // Ensure field name matches backend: 'dateTime'
+
+            // Determine the date to fetch tasks for (e.g., today's date in YYYY-MM-DD format)
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            const response = await fetch(`${API_BASE_URL}/tasks?date=${formattedDate}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error adding task');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const newTask = await response.json();
-            setStatus('Task added successfully!', false);
-            taskInput.value = '';
-            taskDateTimeInput.value = ''; // Clear after successful add
-            fetchTasks(); // Refresh the task list
-            closeModal(taskModal); // Close the task modal
+            const tasks = await response.json();
+            const taskList = document.getElementById('task-list'); // Ensure you have an element with this ID
+            if (taskList) {
+                taskList.innerHTML = ''; // Clear existing tasks
+                if (tasks.length === 0) {
+                    taskList.innerHTML = '<p>No tasks for today.</p>';
+                    return;
+                }
+                tasks.forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'bg-white p-4 rounded-lg shadow-sm mb-2';
+                    const taskDate = new Date(task.dateTime); // Ensure it's a Date object
+                    taskItem.innerHTML = `
+                        <h3 class="font-semibold">${task.description}</h3>
+                        <p class="text-gray-600 text-sm">${taskDate.toLocaleString()}</p>
+                        <p class="text-gray-500 text-xs">Status: ${task.completed ? 'Completed' : 'Pending'}</p>
+                        `;
+                    taskList.appendChild(taskItem);
+                });
+            }
         } catch (error) {
-            setStatus(`Error adding task: ${error.message}`, true);
-            console.error('Error adding task:', error);
+            console.error('Error fetching tasks:', error);
+            setStatus(`Error fetching tasks: ${error.message}`, true);
         }
-    });
+    }
 
-        const toggleTaskCompleted = async (id, completed) => {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to update tasks.', true);
+    // Function to update UI elements based on authentication status
+    function updateAuthUI(isLoggedIn) {
+        const landingSection = document.getElementById('landing-section'); // Assuming this ID
+        const tasksSection = document.getElementById('tasks-section'); // Assuming this ID
+        const loginBtn = document.getElementById('login-btn'); // Assuming this ID
+        const registerBtn = document.getElementById('register-btn'); // Assuming this ID
+        const logoutBtn = document.getElementById('logout-btn'); // Assuming this ID
+
+        if (isLoggedIn) {
+            if (landingSection) landingSection.classList.add('hidden');
+            if (tasksSection) tasksSection.classList.remove('hidden');
+            if (loginBtn) loginBtn.classList.add('hidden');
+            if (registerBtn) registerBtn.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+            fetchTasks(); // Fetch tasks only if logged in
+        } else {
+            if (landingSection) landingSection.classList.remove('hidden');
+            if (tasksSection) tasksSection.classList.add('hidden');
+            if (loginBtn) loginBtn.classList.remove('hidden');
+            if (registerBtn) registerBtn.classList.remove('hidden');
+            if (logoutBtn) logoutBtn.classList.add('hidden');
+        }
+    }
+
+    // Login form submission handler
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value; // Assuming this ID
+        const password = document.getElementById('login-password').value; // Assuming this ID
+        clearAuthErrors();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Login failed');
+            }
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('isLoggedIn', 'true');
+            setStatus('Login successful!', false);
+            closeModal(document.getElementById('authModal')); // Close auth modal after successful login
+            updateAuthUI(true); // Update UI to logged-in state
+        } catch (error) {
+            document.getElementById('authError').textContent = error.message; // Display auth error
+            setStatus(`Login failed: ${error.message}`, true);
+        }
+    }
+
+    // Register form submission handler
+    async function handleRegister(e) {
+        e.preventDefault();
+        const email = document.getElementById('register-email').value; // Assuming this ID
+        const password = document.getElementById('register-password').value; // Assuming this ID
+        clearAuthErrors();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Registration failed');
+            }
+            setStatus('Registration successful! Please log in.', false);
+            document.getElementById('login-link').click(); // Automatically switch to login form
+        } catch (error) {
+            document.getElementById('authError').textContent = error.message; // Display auth error
+            setStatus(`Registration failed: ${error.message}`, true);
+        }
+    }
+
+    // --- Main DOMContentLoaded Listener ---
+    // All DOM element selections and event listeners should be inside this to ensure elements exist
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Element Selections (Ensure these IDs match your HTML) ---
+        const statusMessage = document.getElementById('status-message');
+        const assistantStatus = document.getElementById('assistantStatus');
+
+        const getStartedBtn = document.getElementById('get-started-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const authModal = document.getElementById('authModal');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginToggleBtn = document.getElementById('login-link');
+        const registerToggleBtn = document.getElementById('register-link');
+        const authError = document.getElementById('authError');
+
+        const taskInput = document.getElementById('taskInput');
+        const taskDateTimeInput = document.getElementById('taskDateTimeInput');
+        const taskForm = document.getElementById('taskForm');
+        const taskModal = document.getElementById('taskModal'); // <<< IMPORTANT: taskModal defined here
+        const taskModalCloseBtn = document.getElementById('taskModalCloseBtn');
+
+        const voiceAssistantBtn = document.getElementById('voiceAssistantBtn');
+
+        const landingSection = document.getElementById('landing-section');
+        const tasksSection = document.getElementById('tasks-section');
+        const calendarSection = document.getElementById('calendar-section'); // Assuming this element exists in your HTML
+
+        // --- Event Listeners ---
+
+        // Authentication Modal Toggles (Login/Register link clicks)
+        if (loginToggleBtn) {
+            loginToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                clearAuthErrors(); // Clear errors when switching forms
+            });
+        }
+
+        if (registerToggleBtn) {
+            registerToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+                clearAuthErrors(); // Clear errors when switching forms
+            });
+        }
+
+        // Login/Register Form Submissions
+        if (loginForm) loginForm.addEventListener('submit', handleLogin);
+        if (registerForm) registerForm.addEventListener('submit', handleRegister);
+
+        // Logout Button
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('token'); // Clear token
+                localStorage.setItem('isLoggedIn', 'false'); // Update login status
+                setStatus('Logged out successfully!', false);
+                updateAuthUI(false); // Update UI to logged-out state
+                window.location.hash = ''; // Go back to landing page
+            });
+        }
+
+        // Task Form Submission (includes previous date validation fix)
+        if (taskForm) {
+            taskForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const description = taskInput.value.trim();
+                const dateTimeValue = taskDateTimeInput.value;
+
+                if (!description || !dateTimeValue) {
+                    setStatus('Please enter both task description and date/time.', true);
                     return;
                 }
-                const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ completed })
-                });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                setStatus(`Task marked as ${completed ? 'completed' : 'incomplete'}!`);
-                fetchTasks(); // Re-fetch tasks
-            } catch (error) {
-                console.error('Error toggling task status:', error);
-                setStatus('Failed to update task status.', true);
-            }
-        };
-
-        const deleteTask = async (id) => {
-            if (!confirm('Are you sure you want to delete this task?')) {
-                return;
-            }
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to delete tasks.', true);
-                    return;
-                }
-                const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                setStatus('Task deleted successfully!');
-                fetchTasks(); // Re-fetch tasks
-            } catch (error) {
-                console.error('Error deleting task:', error);
-                setStatus('Failed to delete task.', true);
-            }
-        };
-
-        // --- AI Task Suggestion Logic ---
-        suggestTimeBtn.addEventListener('click', async () => {
-            const taskDescription = aiTaskInput.value.trim();
-            if (!taskDescription) {
-                aiSuggestionOutput.textContent = 'Please enter a task description for AI suggestion.';
-                aiSuggestionOutput.classList.remove('hidden');
-                aiSuggestionOutput.style.color = 'red';
-                return;
-            }
-
-            aiSuggestionOutput.textContent = 'Thinking...';
-            aiSuggestionOutput.style.color = ''; // Reset color
-            aiSuggestionOutput.classList.remove('hidden');
-
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to get AI suggestions.', true);
-                    aiSuggestionOutput.textContent = 'Please log in to get AI suggestions.';
-                    aiSuggestionOutput.style.color = 'red';
-                    return;
-                }
-
-                const response = await fetch(`${API_BASE_URL}/tasks/suggest-time`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ description: taskDescription })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                if (data.suggestedTime) {
-                    const suggestedDate = new Date(data.suggestedTime);
-                    aiSuggestionOutput.textContent = `AI suggests: ${taskDescription} at ${suggestedDate.toLocaleString()}.`;
-                    aiSuggestionOutput.style.color = 'green';
-                } else {
-                    aiSuggestionOutput.textContent = data.message || 'AI could not suggest a time for now.';
-                    aiSuggestionOutput.style.color = 'orange';
-                }
-            } catch (error) {
-                console.error('Error with AI suggestion:', error);
-                aiSuggestionOutput.textContent = 'Failed to get AI suggestion. Please try again.';
-                aiSuggestionOutput.style.color = 'red';
-            }
-        });
-
-        // --- Search Bar Logic ---
-        // Toggle search input visibility
-        toggleSearchBtn.addEventListener('click', () => {
-            taskSearchInput.classList.toggle('hidden-search-input');
-            taskSearchInput.classList.toggle('visible-search-input');
-            if (taskSearchInput.classList.contains('visible-search-input')) {
-                taskSearchInput.focus(); // Focus on input when it becomes visible
-            } else {
-                taskSearchInput.value = ''; // Clear search when hidden
-                fetchTasks(); // Re-fetch tasks without search term
-            }
-        });
-
-        // Debounce for search input to prevent too many requests
-        let searchTimeout;
-        taskSearchInput.addEventListener('keyup', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                fetchTasks(); // Re-fetch tasks with the search query
-            }, 300); // Wait 300ms after user stops typing
-        });
-
-
-        // --- Utility function for status messages ---
-        const setStatus = (message, isError = false) => {
-            taskStatus.textContent = message;
-            taskStatus.classList.remove('hidden', 'text-red-500', 'text-green-500');
-            taskStatus.classList.add(isError ? 'text-red-500' : 'text-green-500');
-            setTimeout(() => {
-                taskStatus.classList.add('hidden');
-            }, 3000);
-        };
-
-
-        // --- Authentication Modal Logic ---
-        function openAuthModal() {
-            authModal.style.display = 'flex';
-            loginTab.click(); // Default to login tab
-        }
-
-        function closeAuthModal() {
-            authModal.style.display = 'none';
-            loginStatus.classList.add('hidden');
-            signupStatus.classList.add('hidden');
-            loginForm.reset();
-            signupForm.reset();
-        }
-
-        authModalBtn.addEventListener('click', openAuthModal);
-        closeButton.addEventListener('click', closeAuthModal);
-        window.addEventListener('click', (event) => {
-            if (event.target == authModal) {
-                closeAuthModal();
-            }
-        });
-
-        loginTab.addEventListener('click', () => {
-            loginTab.classList.add('active');
-            signupTab.classList.remove('active');
-            loginContent.classList.add('active');
-            signupContent.classList.remove('active');
-            loginStatus.classList.add('hidden');
-            signupStatus.classList.add('hidden');
-        });
-
-        signupTab.addEventListener('click', () => {
-            signupTab.classList.add('active');
-            loginTab.classList.remove('active');
-            signupContent.classList.add('active');
-            loginContent.classList.remove('active');
-            loginStatus.classList.add('hidden');
-            signupStatus.classList.add('hidden');
-        });
-
-        // Function to update UI based on login status
-        function updateAuthUI(isLoggedIn) {
-            if (isLoggedIn) {
-                authModalBtn.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
-                tasksSection.classList.remove('hidden');
-                fetchTasks(); // Fetch tasks when logged in
-            } else {
-                authModalBtn.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
-                tasksSection.classList.add('hidden');
-                taskList.innerHTML = ''; // Clear tasks if logged out
-                noTasksMessage.classList.remove('hidden'); // Show no tasks message
-            }
-        }
-
-        // Login Form Submission
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginForm.loginEmail.value;
-            const password = loginForm.loginPassword.value;
-
-            loginStatus.classList.add('hidden'); // Hide previous status
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem('isLoggedIn', 'true'); // Store login status
-                    localStorage.setItem('token', data.token); // Store JWT token
-                    updateAuthUI(true);
-                    closeAuthModal();
-                    alert('Logged in successfully!'); // Or show a nicer notification
-                } else {
-                    loginStatus.textContent = data.message || 'Login failed. Please check your credentials.';
-                    loginStatus.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                loginStatus.textContent = 'An error occurred during login. Please try again.';
-                loginStatus.classList.remove('hidden');
-            }
-        });
-
-        // Signup Form Submission
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = signupForm.signupEmail.value;
-            const password = signupForm.signupPassword.value;
-
-            signupStatus.classList.add('hidden'); // Hide previous status
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Send welcome email using EmailJS
-                    // Replace with your actual EmailJS Public Key, Service ID, and Template ID
-                    emailjs.init("H6HQspTQi-01K9Ava"); // Ensure this is your public key
-                    const templateParams = {
-                        to_email: email,
-                        subject: "Welcome to Calndo!",
-                        message: "Thank Ayou for registering with Calndo! We're excited to help you manage your tasks with AI."
-                    };
-                    await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams); // Ensure these are your service/template IDs
-
-                    alert('Registration successful! Welcome email sent.'); // Or show a nicer notification
-                    loginTab.click(); // Switch to login tab
-                    loginForm.loginEmail.value = email; // Pre-fill login email
-                } else {
-                    signupStatus.textContent = data.message || 'Registration failed. Please try again.';
-                    signupStatus.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('Signup error:', error);
-                signupStatus.textContent = 'An error occurred during registration. Please try again.';
-                signupStatus.classList.remove('hidden');
-            }
-        });
-
-        // Logout functionality
-        logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('isLoggedIn'); // Remove login status
-            localStorage.removeItem('token'); // Remove the JWT token
-            updateAuthUI(false);
-            alert('Logged out successfully!');
-            // Optional: Redirect to home or hero section
-            window.location.href = '#hero';
-        });
-
-        // --- Contact Form Logic (EmailJS) ---
-        // Ensure EmailJS is initialized
-        emailjs.init("H6HQspTQi-01K9Ava"); // Replace with your actual EmailJS Public Key
-
-        contactForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById('contactName').value;
-            const email = document.getElementById('contactEmail').value;
-            const message = document.getElementById('contactMessage').value;
-
-            if (!name || !email || !message) {
-                contactStatus.textContent = 'Please fill in all fields.';
-                contactStatus.classList.remove('hidden', 'text-green-500');
-                contactStatus.classList.add('text-red-500');
-                return;
-            }
-
-            contactStatus.textContent = 'Sending message...';
-            contactStatus.classList.remove('hidden', 'text-red-500');
-            contactStatus.classList.add('text-white'); // Assuming status is white on gradient-bg
-
-            const templateParams = {
-                from_name: name,
-                from_email: email,
-                message: message
-            };
-
-            try {
-                // Replace with your EmailJS Service ID and Template ID
-                await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams);
-                contactStatus.textContent = 'Message sent successfully!';
-                contactStatus.classList.remove('text-red-500');
-                contactStatus.classList.add('text-green-500');
-                contactForm.reset();
-            } catch (error) {
-                console.error('Failed to send message:', error);
-                contactStatus.textContent = 'Failed to send message. Please try again.';
-                contactStatus.classList.remove('text-green-500');
-                contactStatus.classList.add('text-red-500');
-            } finally {
-                setTimeout(() => {
-                    contactStatus.classList.add('hidden');
-                }, 5000);
-            }
-        });
-
-        // --- Edit Task Modal Functions ---
-        function openEditTaskModal(task) {
-            editTaskId.value = task._id;
-            editTaskDescription.value = task.description;
-            // Format date for datetime-local input, using task.scheduledAt
-            const taskDate = new Date(task.scheduledAt); // Use scheduledAt
-            editTaskDateTime.value = taskDate.toISOString().slice(0, 16);
-            editTaskCompleted.checked = task.completed;
-            editTaskStatus.classList.add('hidden'); // Clear previous status
-            editTaskModal.style.display = 'flex';
-        }
-
-        function closeEditTaskModal() {
-            editTaskModal.style.display = 'none';
-        }
-
-        // Close modal if clicking outside
-        window.addEventListener('click', (event) => {
-            if (event.target == editTaskModal) {
-                closeEditTaskModal();
-            }
-        });
-
-        editTaskForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = editTaskId.value;
-            const description = editTaskDescription.value.trim();
-            const dateTimeValue = editTaskDateTime.value; // Get value from datetime-local input
-            const completed = editTaskCompleted.checked;
-
-            if (!description || !dateTimeValue) {
-                editTaskStatus.textContent = 'Description and Date/Time are required.';
-                editTaskStatus.classList.remove('hidden');
-                editTaskStatus.classList.add('text-red-500');
-                return;
-            }
-
-            let scheduledAt = null;
-            if (dateTimeValue) {
+                // Robust date validation before sending to backend
                 const localDate = new Date(dateTimeValue);
-                scheduledAt = localDate.toISOString(); // Convert to ISO string
-            }
-
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to update tasks.', true);
+                if (isNaN(localDate.getTime())) {
+                    setStatus('The entered date and time is invalid. Please use a valid format (e.g., YYYY-MM-DDTHH:MM).', true);
                     return;
                 }
-                const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ description, scheduledAt, completed }) // Send scheduledAt
-                });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                const scheduledAt = localDate.toISOString(); // Convert local date object to UTC ISO string for backend
+
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        setStatus('Please log in to add tasks.', true);
+                        return;
+                    }
+                    const response = await fetch(`${API_BASE_URL}/tasks`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ description, dateTime: scheduledAt }) // Send as 'dateTime' to match backend
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Error adding task');
+                    }
+
+                    const newTask = await response.json();
+                    setStatus('Task added successfully!', false);
+                    taskInput.value = ''; // Clear input fields
+                    taskDateTimeInput.value = '';
+                    fetchTasks(); // Refresh the task list display
+                    closeModal(taskModal); // Close the task modal after successful submission
+                } catch (error) {
+                    setStatus(`Error adding task: ${error.message}`, true);
+                    console.error('Error adding task:', error);
                 }
-
-                setStatus('Task updated successfully!');
-                closeEditTaskModal();
-                fetchTasks(); // Re-fetch tasks to update the list
-            } catch (error) {
-                console.error('Error updating task:', error);
-                editTaskStatus.textContent = 'Failed to update task. Please try again.';
-                editTaskStatus.classList.remove('hidden');
-                editTaskStatus.classList.add('text-red-500');
-            }
-        });
-
+            });
+        }
 
         // --- AI Voice Assistant Logic ---
-        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+        if (('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && voiceAssistantBtn) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
-            recognition.continuous = false; // Listen for a single phrase
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            let isListening = false;
-            const setAssistantStatus = (message, isError = false) => {
-                voiceAssistantStatus.textContent = message;
-                voiceAssistantStatus.classList.remove('hidden', 'text-red-500', 'text-green-500');
-                voiceAssistantStatus.classList.add(isError ? 'text-red-500' : 'text-gray-700');
-                voiceAssistantStatus.classList.remove('hidden');
-                clearTimeout(voiceAssistantStatus.timeoutId); // Clear any previous timeout
-                voiceAssistantStatus.timeoutId = setTimeout(() => {
-                    voiceAssistantStatus.classList.add('hidden');
-                }, 5000); // Hide after 5 seconds
-            };
+            recognition.continuous = false; // Recognizes a single utterance
+            recognition.interimResults = false; // Returns only final results
+            recognition.lang = 'en-US'; // Set language
 
             voiceAssistantBtn.addEventListener('click', () => {
-                if (isListening) {
-                    recognition.stop();
-                    isListening = false;
-                    setAssistantStatus('Voice assistant stopped.');
-                } else {
-                    recognition.start();
-                    isListening = true;
-                    setAssistantStatus('Listening for commands...');
+                if (synth.speaking) {
+                    synth.cancel(); // Stop any current speech
                 }
-                voiceAssistantBtn.classList.toggle('bg-red-600', isListening);
-                voiceAssistantBtn.classList.toggle('bg-purple-600', !isListening);
+                recognition.start(); // Start listening
+                setAssistantStatus('Listening...');
+                speak('Listening...');
             });
 
-            recognition.onstart = () => {
-                setAssistantStatus('Voice assistant active. Speak now...');
-            };
+            recognition.onresult = (event) => {
+                const commandText = event.results[0][0].transcript.toLowerCase().trim();
+                setAssistantStatus(`Heard: "${commandText}"`);
+                console.log('Voice command:', commandText);
 
-            recognition.onend = () => {
-                isListening = false;
-                voiceAssistantBtn.classList.remove('bg-red-600');
-                voiceAssistantBtn.classList.add('bg-purple-600');
-                setAssistantStatus('Voice assistant idle.');
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                setAssistantStatus(`Error: ${event.error}. Please try again.`, true);
-                isListening = false;
-                voiceAssistantBtn.classList.remove('bg-red-600');
-                voiceAssistantBtn.classList.add('bg-purple-600');
-            };
-
-            const speak = (text) => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                window.speechSynthesis.speak(utterance);
-            };
-
-            // Helper function for basic natural language date/time parsing
-            const parseNaturalDateTime = (inputString) => {
-                let date = new Date(); // Start with current date
-                let timePart = '';
-                let dayOffset = 0; // 0 for today, 1 for tomorrow
-
-                // Handle "tomorrow"
-                const tomorrowMatch = inputString.match(/tomorrow(?: at (.+))?/i); // case-insensitive
-                if (tomorrowMatch) {
-                    dayOffset = 1;
-                    timePart = tomorrowMatch[1] || ''; // Capture time part if present
-                    inputString = inputString.replace(tomorrowMatch[0], '').trim(); // Remove "tomorrow" from string
-                }
-                // Handle "today"
-                else if (inputString.includes('today')) {
-                    dayOffset = 0; // Already today
-                    const todayMatch = inputString.match(/today(?: at (.+))?/i);
-                    timePart = todayMatch ? todayMatch[1] : '';
-                    inputString = inputString.replace(todayMatch[0], '').trim(); // Remove "today" from string
-                }
-
-                // Try to find a standalone time like "5pm", "5:00 pm", etc.
-                // This regex is more specific for time formats.
-                const timeOnlyRegex = /(?:at|by|for)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i; // \b for word boundary
-                const timeOnlyMatch = inputString.match(timeOnlyRegex);
-                if (timeOnlyMatch) {
-                    timePart = timeOnlyMatch[1];
-                    inputString = inputString.replace(timeOnlyMatch[0], '').trim(); // Remove time part from inputString
-                }
-
-                // Apply day offset first
-                date.setDate(date.getDate() + dayOffset);
-
-                // Try parsing the remaining input string as a date.
-                // This might parse "July 16th", "next Monday", etc., if `new Date` supports it.
-                // If it's just "5:00 pm" left, new Date() will likely return current date with time.
-                const potentialDate = new Date(inputString);
-                if (!isNaN(potentialDate.getTime())) {
-                    // Only use the date part from potentialDate if it's a valid parsed date
-                    // Don't overwrite the dayOffset applied earlier for "today"/"tomorrow"
-                    if (dayOffset === 0 && !inputString.includes('today') && !inputString.includes('tomorrow')) { // If it's not today/tomorrow relative, use potentialDate's day
-                         date.setFullYear(potentialDate.getFullYear(), potentialDate.getMonth(), potentialDate.getDate());
-                    }
-                }
-
-                if (timePart) {
-                    // Basic time parsing
-                    let hours = 0;
-                    let minutes = 0;
-                    const parsedTimeMatch = timePart.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-                    if (parsedTimeMatch) {
-                        hours = parseInt(parsedTimeMatch[1], 10);
-                        minutes = parseInt(parsedTimeMatch[2] || '0', 10);
-                        const ampm = parsedTimeMatch[3] ? parsedTimeMatch[3].toLowerCase() : '';
-
-                        if (ampm === 'pm' && hours < 12) {
-                            hours += 12;
-                        } else if (ampm === 'am' && hours === 12) { // 12 AM (midnight) is 0 hours
-                            hours = 0;
-                        }
-                    }
-                    date.setHours(hours, minutes, 0, 0); // Set time
-                } else {
-                     // If no time was specified, default to 9 AM
-                    date.setHours(9, 0, 0, 0);
-                }
-
-                return date; // Return the constructed date object
-            };
-
-
-            recognition.onresult = async (event) => {
-                const commandText = event.results[0][0].transcript.toLowerCase();
-                console.log('Voice Command:', commandText);
-                let responseText = "Sorry, I didn't understand that. Can you please rephrase?";
+                let responseText = "Sorry, I didn't understand that. Please try again.";
                 let actionPerformed = false;
 
-                // Define actions based on voice commands
-                // Add Task Command (more flexible for description and date/time)
-                if (commandText.includes('add task') || commandText.includes('create task') || commandText.includes('schedule task')) {
-                    // Adjusted regex to capture the description and then the potential date/time string
-                    // It looks for "add/create/schedule [my] tasks? [optional called] [description] [for/on/at] [date/time string]"
-                    const taskMatch = commandText.match(/(?:add|create|schedule) (?:my )?tasks?(?: called)? (.+?) (?:for|on|at) (.+)/);
+                // Command for adding a task with description and date/time
+                const taskMatch = commandText.match(/(?:add|create|schedule) (?:my )?tasks?(?: called)? (.+?) (?:for|on|at) (.+)/);
+                if (taskMatch) {
+                    const description = taskMatch[1].trim();
+                    const dateTimeString = taskMatch[2].trim();
+                    const parsedDate = parseNaturalDateTime(dateTimeString); // Use the natural language parser
 
-                    if (taskMatch) {
-                        const description = taskMatch[1].trim();
-                        const dateTimeString = taskMatch[2].trim();
-                        
-                        // Use the new natural language parser
-                        const parsedDate = parseNaturalDateTime(dateTimeString);
-
-                        if (!isNaN(parsedDate.getTime())) {
-                            taskInput.value = description;
-                            taskDateTimeInput.value = parsedDate.toISOString().slice(0, 16);
-                            taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                            responseText = `Attempting to add task: "${description}" for ${parsedDate.toLocaleString()}.`;
-                            actionPerformed = true;
-                        } else {
-                            responseText = `Could not fully understand the date and time from "${dateTimeString}". Please try a format like "tomorrow at 5 PM" or "July 16th 2025 at 9 AM".`;
-                        }
-                    } else {
-                        // If "add task" command is recognized but no full description/date is found in the same phrase
-                        responseText = "Okay, I can add a task. Please tell me the task description and a date/time. For example: 'add task buy groceries for tomorrow at 5 PM'.";
-                        actionPerformed = true; // Still considered an understood command, even if it needs more input
-                    }
-                }
-                // Suggest Time Command
-                else if (commandText.includes('suggest time for')) {
-                    const taskMatch = commandText.match(/suggest time for (.+)/);
-                    if (taskMatch) {
-                        const description = taskMatch[1].trim();
-                        aiTaskInput.value = description;
-                        suggestTimeBtn.click(); // Simulate button click
-                        responseText = `Getting AI suggestion for "${description}".`;
+                    if (!isNaN(parsedDate.getTime())) { // Check if the parsed date is valid
+                        taskInput.value = description;
+                        taskDateTimeInput.value = parsedDate.toISOString().slice(0, 16); // Format for datetime-local input
+                        // Dispatch a submit event on the form to trigger the task creation logic
+                        // This will also run the form's own validation (including the new date validation).
+                        taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                        responseText = `Attempting to add task: "${description}" for ${parsedDate.toLocaleString()}.`;
                         actionPerformed = true;
                     } else {
-                        responseText = "Please tell me what task you want a suggestion for, like 'suggest time for my meeting'.";
+                        responseText = `Could not fully understand the date and time from "${dateTimeString}". Please try a format like "tomorrow at 5 PM" or "July 16th 2025 at 9 AM".`;
+                        taskDateTimeInput.value = ''; // Clear input if parsing failed
+                        // Do NOT dispatch the form submit event if date parsing failed!
+                        // The user will need to manually correct the date/time in the input field.
+                        actionPerformed = true; // Indicate that a command was recognized, even if not fully actionable.
                     }
                 }
-                // Show tasks command
-                else if (commandText.includes('show task for') || commandText.includes('show tasks for') ||
-                         commandText.includes('list task for') || commandText.includes('list tasks for')) {
-                    const dateMatch = commandText.match(/(?:show|list) tasks? for (.+)/); // Added 's?' for optional plural
-                    if (dateMatch) {
-                        const dateString = dateMatch[1].trim();
-                        let targetDate = new Date();
-                        // Adjusting for common phrases relative to current date
-                        const now = new Date();
-                        if (dateString.includes('today')) {
-                            // targetDate is already today's date
-                        } else if (dateString.includes('tomorrow')) {
-                            targetDate.setDate(now.getDate() + 1);
-                        } else if (dateString.includes('yesterday')) {
-                            targetDate.setDate(now.getDate() - 1);
-                        } else if (dateString.includes('next week')) {
-                            targetDate.setDate(now.getDate() + 7);
-                        } else if (dateString.includes('next month')) {
-                            targetDate.setMonth(now.getMonth() + 1);
-                        }
-                        else {
-                            // Try to parse an absolute date
-                            const parsed = new Date(dateString);
-                            if (!isNaN(parsed.getTime())) {
-                                targetDate = parsed;
-                            } else {
-                                responseText = `Could not understand the date "${dateString}". Showing tasks for today.`;
-                                targetDate = now; // Fallback to today
-                            }
-                        }
-                        currentSelectedDate = targetDate;
-                        currentMonth = targetDate.getMonth();
-                        currentYear = targetDate.getFullYear();
-                        renderCalendar(); // This will re-render calendar and re-fetch tasks for the date
-                        responseText = `Showing tasks for ${currentSelectedDate.toLocaleDateString()}.`;
-                        actionPerformed = true;
-                    } else {
-                         responseText = "Please specify a date or phrase like 'show tasks for tomorrow'.";
-                    }
-                }
-                // What's the date?
-                else if (commandText.includes("what's the date") || commandText.includes("what is the date")) {
-                    responseText = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
+                // Command for greeting
+                else if (commandText.includes('hello') || commandText.includes('hi')) {
+                    responseText = "Hello there! How can I help you today?";
                     actionPerformed = true;
                 }
-                // Complete task command (basic)
-                else if (commandText.includes('complete task') || commandText.includes('mark task complete')) {
-                    responseText = "To complete a task, please use the 'Edit' button next to the task on your list, or say 'complete task [task title]' if I supported more advanced NLP.";
-                    actionPerformed = true;
-                }
-                 // Delete task command (basic)
-                else if (commandText.includes('delete task') || commandText.includes('remove task')) {
-                    responseText = "To delete a task, please use the 'Delete' button next to the task on your list, or say 'delete task [task title]' if I supported more advanced NLP.";
-                    actionPerformed = true;
-                }
-                 // Farewell
+                // Command for goodbye
                 else if (commandText.includes('goodbye') || commandText.includes('bye')) {
                     responseText = "Goodbye! Have a great day.";
                     actionPerformed = true;
                 }
 
-                // If no specific action was performed by matching a command, speak the default response.
-                if (!actionPerformed) {
-                    speak(responseText); // Speak the default "Sorry, I didn't understand that"
-                    setAssistantStatus(responseText); // Display the status
-                } else {
-                    speak(responseText); // Speak the specific action response
-                    setAssistantStatus(responseText); // Display the status
-                }
+                speak(responseText); // Speak the response
+                setAssistantStatus(responseText); // Display the spoken response in status area
             };
 
-            window.speak = speak;
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setAssistantStatus(`Error: ${event.error}`);
+                speak(`Error: ${event.error}`);
+            };
+
+            recognition.onend = () => {
+                // Reset status after recognition ends, unless new speech is queued
+                if (!currentUtterance || !synth.speaking) {
+                    setAssistantStatus('Click to speak');
+                }
+            };
+            window.speak = speak; // Make speak accessible globally if needed (e.g., from console)
         } else {
             // Browser does not support Web Speech API
-            voiceAssistantBtn.style.display = 'none';
+            if (voiceAssistantBtn) voiceAssistantBtn.style.display = 'none';
             setStatus('Voice assistant not supported in this browser. Please use Chrome or Edge.', true);
         }
         // --- End AI Voice Assistant Logic ---
@@ -1278,13 +762,13 @@
 
         // Initial Render calls
         renderCalendar();
-        // fetchTasks(); // Initial fetch of tasks is now handled by updateAuthUI
+        // fetchTasks(); // Initial fetch of tasks is now handled by updateAuthUI based on login status
 
         // Check login status on page load
         const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         updateAuthUI(isLoggedIn); // Update UI based on initial login status
 
-        // Event listener for "Get Started" button to open auth modal or go to tasks
+        // Event listener for "Get Started" button to open auth modal or redirect
         if (getStartedBtn) {
             getStartedBtn.addEventListener('click', () => {
                 const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -1296,6 +780,22 @@
             });
         }
 
+        // Modal close buttons (assuming you have close buttons for authModal and taskModal)
+        const authModalCloseBtn = document.getElementById('authModalCloseBtn');
+        if (authModalCloseBtn) {
+            authModalCloseBtn.addEventListener('click', () => closeModal(authModal));
+        }
+        if (taskModalCloseBtn) {
+            taskModalCloseBtn.addEventListener('click', () => closeModal(taskModal));
+        }
+        // Close modals when the backdrop is clicked
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('click', () => {
+                closeModal(authModal);
+                closeModal(taskModal); // Close all potentially open modals
+            });
+        }
     }); // End DOMContentLoaded
 </script>
 </body>
