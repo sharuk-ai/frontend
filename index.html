@@ -539,49 +539,57 @@
         };
 
         taskForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const description = taskInput.value.trim();
-            const dateTimeValue = taskDateTimeInput.value; // Use taskDateTimeInput
+        e.preventDefault();
+        const description = taskInput.value.trim();
+        const dateTimeValue = taskDateTimeInput.value; // Get value from the datetime-local input
 
-            if (!description || !dateTimeValue) {
-                setStatus('Please enter both task description and date/time.', true);
+        if (!description || !dateTimeValue) {
+            setStatus('Please enter both task description and date/time.', true);
+            return;
+        }
+
+        const localDate = new Date(dateTimeValue); // Attempt to parse the input field's value
+
+        // --- ADD THIS NEW VALIDATION CHECK ---
+        if (isNaN(localDate.getTime())) {
+            setStatus('The entered date and time is invalid. Please use a valid format (e.g., YYYY-MM-DDTHH:MM).', true);
+            return; // Stop the form submission if the date is invalid
+        }
+        // --- END NEW VALIDATION CHECK ---
+
+        const scheduledAt = localDate.toISOString(); // Convert to ISO string for backend
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setStatus('Please log in to add tasks.', true);
                 return;
             }
+            const response = await fetch(`${API_BASE_URL}/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ description, dateTime: scheduledAt }) // Ensure field name matches backend: 'dateTime'
+            });
 
-            let scheduledAt = null;
-            if (dateTimeValue) {
-                const localDate = new Date(dateTimeValue);
-                scheduledAt = localDate.toISOString(); // Convert to ISO string
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error adding task');
             }
 
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setStatus('Please log in to add tasks.', true);
-                    return;
-                }
-                const response = await fetch(`${API_BASE_URL}/tasks`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ description, scheduledAt }) // Send scheduledAt
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                taskInput.value = ''; // Clear input
-                taskDateTimeInput.value = ''; // Clear date/time input
-                setStatus('Task added successfully!');
-                fetchTasks(); // Re-fetch tasks for current date
-            } catch (error) {
-                console.error('Error adding task:', error);
-                setStatus('Failed to add task. Please try again.', true);
-            }
-        });
+            const newTask = await response.json();
+            setStatus('Task added successfully!', false);
+            taskInput.value = '';
+            taskDateTimeInput.value = ''; // Clear after successful add
+            fetchTasks(); // Refresh the task list
+            closeModal(taskModal); // Close the task modal
+        } catch (error) {
+            setStatus(`Error adding task: ${error.message}`, true);
+            console.error('Error adding task:', error);
+        }
+    });
 
         const toggleTaskCompleted = async (id, completed) => {
             try {
