@@ -293,6 +293,24 @@
 <script>
     AOS.init(); // Initialize AOS library
 
+        function openModal(modalElement) {
+        if (modalElement) {
+            modalElement.classList.remove('hidden');
+            // You might also have logic to show an overlay backdrop
+            const overlay = document.getElementById('modal-backdrop'); // If you have a backdrop
+            if (overlay) overlay.classList.remove('hidden');
+        }
+    }
+
+    function closeModal(modalElement) {
+        if (modalElement) {
+            modalElement.classList.add('hidden');
+            // You might also have logic to hide an overlay backdrop
+            const overlay = document.getElementById('modal-backdrop'); // If you have a backdrop
+            if (overlay) overlay.classList.add('hidden');
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         // --- API Base URL ---
         // IMPORTANT: Ensure this matches your Render backend URL with the /api prefix
