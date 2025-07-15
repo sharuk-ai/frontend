@@ -337,6 +337,15 @@
         const editTaskCompleted = document.getElementById('editTaskCompleted');
         const editTaskStatus = document.getElementById('editTaskStatus');
 
+        // --- Helper function to format date for datetime-local input (local time) ---
+        function formatLocalDateTime(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
 
         // --- Calendar Logic ---
         let currentMonth = new Date().getMonth();
@@ -398,10 +407,9 @@
 
         const updateSelectedDateDisplay = () => {
             document.getElementById('selectedDateDisplay').textContent = currentSelectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            // Set taskDateTime to currentSelectedDate at 9 AM for convenience
-            const today = new Date();
-            const defaultTime = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 9, 0); // Set to 9 AM
-            taskDateTime.value = defaultTime.toISOString().slice(0, 16);
+            // Set taskDateTime to currentSelectedDate at 9 AM for convenience (LOCAL TIME)
+            const defaultTime = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 9, 0); // Set to 9 AM local time
+            taskDateTimeInput.value = formatLocalDateTime(defaultTime); // Use helper function
         };
 
 
@@ -426,9 +434,17 @@
         // --- Task Management Logic ---
 
         const fetchTasks = async () => {
-            const date = currentSelectedDate.toISOString().split('T')[0];
-            const searchQuery = taskSearchInput.value.trim(); // Get current search input
-            let url = `${API_BASE_URL}/tasks?date=${date}`;
+            // currentSelectedDate is a Date object representing the start of the selected local day (00:00:00)
+            // Calculate the start of the selected day in UTC
+            const startOfDayLocal = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 0, 0, 0);
+            const startUtc = startOfDayLocal.toISOString();
+
+            // Calculate the end of the selected day in UTC (which is effectively start of next day UTC)
+            const endOfDayLocal = new Date(currentSelectedDate.getFullYear(), currentSelectedDate.getMonth(), currentSelectedDate.getDate(), 23, 59, 59, 999);
+            const endUtc = endOfDayLocal.toISOString();
+
+            const searchQuery = taskSearchInput.value.trim();
+            let url = `${API_BASE_URL}/tasks?start=${encodeURIComponent(startUtc)}&end=${encodeURIComponent(endUtc)}`;
 
             if (searchQuery) {
                 url += `&search=${encodeURIComponent(searchQuery)}`;
@@ -515,12 +531,16 @@
         taskForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const description = taskInput.value.trim();
-            const dateTime = taskDateTime.value;
+            const localDateTimeString = taskDateTimeInput.value; // Get the local date-time string from input
 
-            if (!description || !dateTime) {
+            if (!description || !localDateTimeString) {
                 setStatus('Please enter both task description and date/time.', true);
                 return;
             }
+
+            // Convert the local date-time string to a Date object, then to ISO UTC string for the backend
+            const dateObj = new Date(localDateTimeString);
+            const dateTimeToSend = dateObj.toISOString();
 
             try {
                 const response = await fetch(`${API_BASE_URL}/tasks`, {
@@ -528,7 +548,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ description, dateTime })
+                    body: JSON.stringify({ description, dateTime: dateTimeToSend }) // Send UTC ISO string
                 });
 
                 if (!response.ok) {
@@ -775,14 +795,14 @@
 
                 if (response.ok) {
                     // Send welcome email using EmailJS
-                    // Replace with your actual EmailJS Public Key, Service ID, and Template ID
-                    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+                    // !! IMPORTANT: Replace "YOUR_EMAILJS_PUBLIC_KEY", "YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID" with your actual EmailJS credentials !!
+                    emailjs.init("H6HQspTQi-01K9Ava"); // Replace with your actual EmailJS Public Key
                     const templateParams = {
                         to_email: email,
                         subject: "Welcome to Calndo!",
                         message: "Thank Ayou for registering with Calndo! We're excited to help you manage your tasks with AI."
                     };
-                    await emailjs.send("YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID", templateParams);
+                    await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams); // Replace with your actual EmailJS Service ID and Template ID
 
                     alert('Registration successful! Welcome email sent.'); // Or show a nicer notification
                     loginTab.click(); // Switch to login tab
@@ -810,6 +830,7 @@
 
         // --- Contact Form Logic (EmailJS) ---
         // Ensure EmailJS is initialized
+        // !! IMPORTANT: Replace "H6HQspTQi-01K9Ava" with your actual EmailJS Public Key !!
         emailjs.init("H6HQspTQi-01K9Ava"); // Replace with your actual EmailJS Public Key
 
         contactForm.addEventListener('submit', async (e) => {
@@ -837,8 +858,8 @@
             };
 
             try {
-                // Replace with your EmailJS Service ID and Template ID
-                await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams);
+                // !! IMPORTANT: Replace "service_yssyt0f" and "template_g1f0rha" with your actual EmailJS Service ID and Template ID !!
+                await emailjs.send("service_yssyt0f", "template_g1f0rha", templateParams); // Replace with your EmailJS Service ID and Template ID
                 contactStatus.textContent = 'Message sent successfully!';
                 contactStatus.classList.remove('text-red-500');
                 contactStatus.classList.add('text-green-500');
@@ -859,9 +880,9 @@
         function openEditTaskModal(task) {
             editTaskId.value = task._id;
             editTaskDescription.value = task.description;
-            // Format date for datetime-local input
-            const taskDate = new Date(task.dateTime);
-            editTaskDateTime.value = taskDate.toISOString().slice(0, 16);
+            // Format date for datetime-local input to display local time correctly
+            const taskDate = new Date(task.dateTime); // This will parse UTC string from backend into local Date object
+            editTaskDateTime.value = formatLocalDateTime(taskDate); // Use helper function to format for input
             editTaskCompleted.checked = task.completed;
             editTaskStatus.classList.add('hidden'); // Clear previous status
             editTaskModal.style.display = 'flex';
@@ -882,15 +903,19 @@
             e.preventDefault();
             const id = editTaskId.value;
             const description = editTaskDescription.value.trim();
-            const dateTime = editTaskDateTime.value;
+            const localDateTimeString = editTaskDateTime.value; // Get local date-time string
             const completed = editTaskCompleted.checked;
 
-            if (!description || !dateTime) {
+            if (!description || !localDateTimeString) {
                 editTaskStatus.textContent = 'Description and Date/Time are required.';
                 editTaskStatus.classList.remove('hidden');
                 editTaskStatus.classList.add('text-red-500');
                 return;
             }
+
+            // Convert the local date-time string to a Date object, then to ISO UTC string for the backend
+            const dateObj = new Date(localDateTimeString);
+            const dateTimeToSend = dateObj.toISOString();
 
             try {
                 const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
@@ -898,7 +923,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ description, dateTime, completed })
+                    body: JSON.stringify({ description, dateTime: dateTimeToSend, completed }) // Send UTC ISO string
                 });
 
                 if (!response.ok) {
@@ -993,7 +1018,8 @@
                         const parsedDate = new Date(dateTimeString);
                         if (!isNaN(parsedDate.getTime())) {
                             taskInput.value = description;
-                            taskDateTime.value = parsedDate.toISOString().slice(0, 16);
+                            // Set datetime-local input using the new helper for correct local time display
+                            taskDateTimeInput.value = formatLocalDateTime(parsedDate);
                             taskForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
                             responseText = `Attempting to add task: ${description} for ${parsedDate.toLocaleString()}.`;
                             actionPerformed = true;
